@@ -49,7 +49,7 @@
             <div>
                 <label for="message" class="block text-sm font-medium text-slate-700">Mensaje</label>
                 <textarea id="message" name="message" rows="10" required
-                          class="mt-1 block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Contenido del recordatorio">{{ old('message', "Hola {{nombre}},\n\nTe recordamos tu sesión programada para el {{fecha}} a las {{hora}} (zona horaria: {{tz}}).\n\nEnlace de la videollamada: {{enlace}}\n\nSi necesitas reprogramar o cancelar, por favor responde a este correo.\n\nGracias,\nEquipo Nimbus") }}</textarea>
+                          class="mt-1 block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Contenido del recordatorio">{{ old('message', "Hola @{{nombre}},\n\nTe recordamos tu sesión programada para el @{{fecha}} a las @{{hora}} (zona horaria: @{{tz}}).\n\nEnlace de la videollamada: @{{enlace}}\n\nSi necesitas reprogramar o cancelar, por favor responde a este correo.\n\nGracias,\nEquipo Nimbus") }}</textarea>
                 <p class="mt-2 text-xs text-slate-500">Puedes usar placeholders como {{'{{nombre}}'}}, {{'{{fecha}}'}}, {{'{{hora}}'}}, {{'{{tz}}'}}, {{'{{enlace}}'}} y personalizarlos manualmente en esta prueba.</p>
             </div>
 
