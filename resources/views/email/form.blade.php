@@ -49,8 +49,21 @@
             <div>
                 <label for="message" class="block text-sm font-medium text-slate-700">Mensaje</label>
                 <textarea id="message" name="message" rows="10" required
-                          class="mt-1 block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Contenido del recordatorio">{{ old('message', "Hola @{{nombre}},\n\nTe recordamos tu sesión programada para el @{{fecha}} a las @{{hora}} (zona horaria: @{{tz}}).\n\nEnlace de la videollamada: @{{enlace}}\n\nSi necesitas reprogramar o cancelar, por favor responde a este correo.\n\nGracias,\nEquipo Nimbus") }}</textarea>
-                <p class="mt-2 text-xs text-slate-500">Puedes usar placeholders como {{'{{nombre}}'}}, {{'{{fecha}}'}}, {{'{{hora}}'}}, {{'{{tz}}'}}, {{'{{enlace}}'}} y personalizarlos manualmente en esta prueba.</p>
+                          class="mt-1 block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Contenido del recordatorio">@if (old('message')){{ old('message') }}@else
+@verbatim
+Hola {{nombre}},
+
+Te recordamos tu sesión programada para el {{fecha}} a las {{hora}} (zona horaria: {{tz}}).
+
+Enlace de la videollamada: {{enlace}}
+
+Si necesitas reprogramar o cancelar, por favor responde a este correo.
+
+Gracias,
+Equipo Nimbus
+@endverbatim
+@endif</textarea>
+                <p class="mt-2 text-xs text-slate-500">Puedes usar placeholders como <code>{{'{{nombre}}'}}</code>, <code>{{'{{fecha}}'}}</code>, <code>{{'{{hora}}'}}</code>, <code>{{'{{tz}}'}}</code>, <code>{{'{{enlace}}'}}</code> y personalizarlos manualmente en esta prueba.</p>
             </div>
 
             <div class="flex items-center justify-end gap-3">
