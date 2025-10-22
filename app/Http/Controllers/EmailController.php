@@ -10,7 +10,8 @@ class EmailController extends Controller
 {
     public function create()
     {
-        return view('email.form');
+        $defaultMessage = "Hola {{nombre}},\n\nTe recordamos tu sesión programada para el {{fecha}} a las {{hora}} (zona horaria: {{tz}}).\n\nEnlace de la videollamada: {{enlace}}\n\nSi necesitas reprogramar o cancelar, por favor responde a este correo.\n\nGracias,\nEquipo Nimbus";
+        return view('email.form', compact('defaultMessage'));
     }
 
     public function send(Request $request)
