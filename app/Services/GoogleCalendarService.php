@@ -8,7 +8,25 @@ use Illuminate\Support\Carbon;
 
 class GoogleCalendarService
 {
-    public function listUpcomingEvents(?string $accountEmail, int $hoursAhead = 48): array
+    public function listCalendars(?string $accountEmail): array
+    {
+        $client = GoogleClientFactory::make($accountEmail);
+        $service = new GoogleCalendar($client);
+
+        $calList = $service->calendarList->listCalendarList([ 'minAccessRole' => 'reader', 'maxResults' => 250 ]);
+        $out = [];
+        foreach ($calList->getItems() as $cal) {
+            $out[] = [
+                'id' => $cal->getId(),
+                'summary' => $cal->getSummary(),
+                'primary' => (bool) $cal->getPrimary(),
+                'timeZone' => $cal->getTimeZone(),
+            ];
+        }
+        return $out;
+    }
+
+    public function listUpcomingEvents(?string $accountEmail, int $hoursAhead = 48, ?array $calendarIds = null): array
     {
         $client = GoogleClientFactory::make($accountEmail);
         $service = new GoogleCalendar($client);
@@ -16,34 +34,37 @@ class GoogleCalendarService
         $timeMin = now()->toRfc3339String();
         $timeMax = now()->addHours($hoursAhead)->toRfc3339String();
 
-        $events = $service->events->listEvents('primary', [
-            'timeMin' => $timeMin,
-            'timeMax' => $timeMax,
-            'singleEvents' => true,
-            'orderBy' => 'startTime',
-            'maxResults' => 2500,
-        ]);
-
         $out = [];
-        foreach ($events->getItems() as $event) {
-            $start = $event->getStart();
-            $end = $event->getEnd();
-            $attendees = $event->getAttendees() ?? [];
-            $attendee = count($attendees) ? $attendees[0] : null;
+        $targetCalendars = $calendarIds && count($calendarIds) ? $calendarIds : ['primary'];
+        foreach ($targetCalendars as $calId) {
+            $events = $service->events->listEvents($calId, [
+                'timeMin' => $timeMin,
+                'timeMax' => $timeMax,
+                'singleEvents' => true,
+                'orderBy' => 'startTime',
+                'maxResults' => 2500,
+            ]);
 
-            $out[] = [
-                'google_event_id' => $event->getId(),
-                'calendar_id' => $event->getOrganizer()?->getEmail() ?? 'primary',
-                'summary' => $event->getSummary(),
-                'description' => $event->getDescription(),
-                'start_at' => $start?->getDateTime() ?: $start?->getDate(),
-                'end_at' => $end?->getDateTime() ?: $end?->getDate(),
-                'timezone' => $start?->getTimeZone(),
-                'attendee_name' => $attendee?->getDisplayName(),
-                'attendee_phone' => null, // extraer desde description si se define un patrón
-                'hangout_link' => $event->getHangoutLink(),
-                'raw' => $event,
-            ];
+            foreach ($events->getItems() as $event) {
+                $start = $event->getStart();
+                $end = $event->getEnd();
+                $attendees = $event->getAttendees() ?? [];
+                $attendee = count($attendees) ? $attendees[0] : null;
+
+                $out[] = [
+                    'google_event_id' => $event->getId(),
+                    'calendar_id' => $calId,
+                    'summary' => $event->getSummary(),
+                    'description' => $event->getDescription(),
+                    'start_at' => $start?->getDateTime() ?: $start?->getDate(),
+                    'end_at' => $end?->getDateTime() ?: $end?->getDate(),
+                    'timezone' => $start?->getTimeZone(),
+                    'attendee_name' => $attendee?->getDisplayName(),
+                    'attendee_phone' => null,
+                    'hangout_link' => $event->getHangoutLink(),
+                    'raw' => $event,
+                ];
+            }
         }
 
         return $out;
