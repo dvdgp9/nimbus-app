@@ -5,10 +5,9 @@ use App\Http\Controllers\EmailController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\EventsController;
 use App\Http\Controllers\CalendarsController;
+use App\Http\Controllers\HomeController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', HomeController::class)->name('home');
 
 Route::get('/healthz', function () {
     return response()->json(['status' => 'ok'], 200);
