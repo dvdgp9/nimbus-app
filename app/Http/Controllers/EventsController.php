@@ -21,7 +21,13 @@ class EventsController extends Controller
 
         $events = [];
         if ($email) {
-            $events = $this->calendar->listUpcomingEvents($email, 48);
+            $calendarIds = DB::table('connected_calendars')
+                ->where('account_email', $email)
+                ->where('enabled', 1)
+                ->pluck('calendar_id')
+                ->all();
+
+            $events = $this->calendar->listUpcomingEvents($email, 48, $calendarIds ?: null);
         }
 
         return view('events.index', [
@@ -36,7 +42,13 @@ class EventsController extends Controller
         if (!$email) {
             return back()->withErrors(['account' => 'Selecciona una cuenta conectada']);
         }
-        $events = $this->calendar->listUpcomingEvents($email, 48);
+        $calendarIds = DB::table('connected_calendars')
+            ->where('account_email', $email)
+            ->where('enabled', 1)
+            ->pluck('calendar_id')
+            ->all();
+
+        $events = $this->calendar->listUpcomingEvents($email, 48, $calendarIds ?: null);
         $count = $this->calendar->syncAppointments($events);
         return back()->with('status', "Sincronizados {$count} eventos de las próximas 48h");
     }
