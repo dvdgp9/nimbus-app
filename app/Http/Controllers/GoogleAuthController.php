@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Log;
 
 class GoogleAuthController extends Controller
 {
+    public function connect(Request $request)
+    {
+        return view('google.connect');
+    }
+
     public function redirect(Request $request): RedirectResponse
     {
         $client = GoogleClientFactory::make();

@@ -13,7 +13,18 @@ class GoogleClientFactory
         $client->setClientId(config('services.google.client_id'));
         $client->setClientSecret(config('services.google.client_secret'));
         $client->setRedirectUri(config('services.google.redirect'));
-        $scopes = preg_split('/\s+/', (string) env('GOOGLE_SCOPES', 'openid email profile https://www.googleapis.com/auth/calendar.readonly'));
+        // Set scopes - Calendar scope is required for listing calendars and events
+        $scopes = [
+            'openid',
+            'email',
+            'profile',
+            'https://www.googleapis.com/auth/calendar',
+        ];
+        
+        // Allow env override if needed
+        if (env('GOOGLE_SCOPES')) {
+            $scopes = preg_split('/\s+/', (string) env('GOOGLE_SCOPES'));
+        }
         $client->setScopes($scopes);
         $client->setAccessType('offline');
         $client->setPrompt('consent');

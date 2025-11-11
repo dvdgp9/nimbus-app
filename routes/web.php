@@ -17,7 +17,8 @@ Route::get('/email', [EmailController::class, 'create'])->name('email.create');
 Route::post('/email', [EmailController::class, 'send'])->name('email.send');
 
 // Google OAuth
-Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('google.connect');
+Route::get('/auth/google', [GoogleAuthController::class, 'connect'])->name('google.connect');
+Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 
 // Events endpoints

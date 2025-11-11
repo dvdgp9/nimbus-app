@@ -21,7 +21,21 @@ class CalendarsController extends Controller
             return redirect()->route('google.connect');
         }
 
-        $all = $this->calendar->listCalendars($email);
+        try {
+            $all = $this->calendar->listCalendars($email);
+        } catch (\Google\Service\Exception $e) {
+            // Check if error is due to insufficient scopes
+            $error = json_decode($e->getMessage(), true);
+            if (isset($error['error']['code']) && $error['error']['code'] === 403) {
+                // Delete the token to force re-authentication with new scopes
+                DB::table('google_tokens')->where('account_email', $email)->delete();
+                
+                return redirect()->route('google.connect')
+                    ->with('status', 'Es necesario volver a conectar tu cuenta de Google con los permisos correctos. Por favor, autoriza el acceso a Google Calendar.');
+            }
+            throw $e; // Re-throw if it's a different error
+        }
+        
         $enabled = DB::table('connected_calendars')
             ->where('account_email', $email)
             ->pluck('enabled', 'calendar_id')
