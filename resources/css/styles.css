@@ -55,7 +55,11 @@ nav a::after { content: ""; position: absolute; left: 0; bottom: -6px; height: 2
 nav a:hover::after { width: 100%; }
 
 /* Glass utility */
-.glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); border: 1px solid rgba(148,163,184,0.3); }
+@utility glass {
+  background: rgba(255,255,255,0.07); 
+  backdrop-filter: blur(10px); 
+  border: 1px solid rgba(255,255,255,0.1);
+}
 
 /* Hero banner (optional for future landing) */
 .nimbus-hero {
@@ -71,4 +75,180 @@ nav a:hover::after { width: 100%; }
   content: ""; position: absolute; inset: auto 0 -10px 0; height: 2px;
   background: linear-gradient(90deg, transparent, var(--nimbus-accent), transparent);
   filter: blur(0.5px);
+}
+
+/* Navigation styles */
+.nav-link {
+  @apply inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white/70 rounded-lg transition-all;
+  position: relative;
+}
+.nav-link:hover {
+  @apply text-white bg-white/10;
+}
+.nav-link.active {
+  @apply text-white bg-white/15;
+}
+.nav-link.active::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, var(--nimbus-accent), var(--nimbus-primary));
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Page container */
+.page-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
+}
+
+/* Page header */
+.page-header {
+  @apply mb-8;
+}
+.page-header h1 {
+  @apply text-3xl font-bold mb-2;
+  background: linear-gradient(135deg, var(--nimbus-accent), var(--nimbus-primary), var(--nimbus-warm));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.page-header p {
+  @apply text-white/60 text-sm;
+}
+
+/* Stats grid */
+.stats-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8;
+}
+.stat-card {
+  @apply glass rounded-xl p-5 transition-all duration-200;
+}
+.stat-card:hover {
+  @apply bg-white/10;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 212, 255, 0.15);
+}
+.stat-card .label {
+  @apply text-xs font-medium text-white/50 uppercase tracking-wide;
+}
+.stat-card .value {
+  @apply text-3xl font-bold mt-2;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Action cards */
+.action-card {
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.action-card:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(91, 124, 250, 0.2);
+}
+.action-card h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.action-card p {
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.6);
+  margin-top: 0.5rem;
+}
+.action-card .icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, var(--nimbus-accent), var(--nimbus-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(91, 124, 250, 0.3);
+}
+
+/* Event card */
+.event-card {
+  @apply glass rounded-xl p-5 transition-all duration-200;
+}
+.event-card:hover {
+  @apply bg-white/10;
+  box-shadow: 0 8px 30px rgba(0, 212, 255, 0.15);
+}
+.event-card h3 {
+  @apply text-base font-semibold text-white;
+}
+.event-card .meta {
+  @apply text-xs text-white/50 mt-1;
+}
+.event-card dl {
+  @apply grid grid-cols-2 gap-3 mt-4 text-sm;
+}
+.event-card dt {
+  @apply text-white/50 text-xs;
+}
+.event-card dd {
+  @apply text-white/90 font-medium;
+}
+
+/* Form styles */
+.form-group {
+  @apply space-y-2;
+}
+.form-label {
+  @apply block text-sm font-medium text-white/80;
+}
+.form-input {
+  @apply block w-full rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 px-4 py-2.5 text-sm transition-all;
+  @apply focus:bg-white/10 focus:border-[var(--nimbus-accent)] focus:ring-2 focus:ring-[var(--nimbus-accent)]/20 focus:outline-none;
+}
+.form-input:hover {
+  @apply bg-white/7 border-white/20;
+}
+.form-checkbox {
+  @apply w-5 h-5 rounded border-white/20 bg-white/5 text-[var(--nimbus-primary)] transition-all;
+  @apply focus:ring-2 focus:ring-[var(--nimbus-accent)]/20 focus:ring-offset-0;
+}
+.form-checkbox:checked {
+  @apply bg-gradient-to-br from-[var(--nimbus-accent)] to-[var(--nimbus-primary)] border-transparent;
+}
+
+/* Alert styles */
+.alert {
+  @apply rounded-lg px-4 py-3 text-sm backdrop-blur-sm;
+}
+.alert-success {
+  @apply bg-emerald-500/10 border border-emerald-500/30 text-emerald-300;
+}
+.alert-error {
+  @apply bg-red-500/10 border border-red-500/30 text-red-300;
+}
+
+/* Empty state */
+.empty-state {
+  @apply glass rounded-xl p-12 text-center;
+}
+.empty-state .icon {
+  @apply w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center text-white/30;
+}
+.empty-state h3 {
+  @apply text-lg font-semibold text-white/80 mb-2;
+}
+.empty-state p {
+  @apply text-sm text-white/50;
 }

@@ -1,62 +1,121 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Próximos eventos • Nimbus</title>
-  @vite(['resources/css/app.css','resources/js/app.js'])
-</head>
-<body class="min-h-screen bg-slate-50 text-slate-800">
-  <main class="max-w-5xl mx-auto p-6">
-    <header class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-semibold">Próximos 48h</h1>
-        <p class="text-sm text-slate-500 mt-1">Cuenta: <strong>{{ $account ?? '—' }}</strong></p>
+@extends('layouts.app')
+
+@section('title', 'Próximos eventos')
+
+@section('content')
+<div class="page-container">
+  {{-- Page Header --}}
+  <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div class="page-header mb-0">
+      <h1>Próximas 48 horas</h1>
+      <p>Cuenta: <span class="text-white font-medium">{{ $account ?? 'No especificada' }}</span></p>
+    </div>
+    <div class="flex gap-2">
+      <form method="POST" action="{{ route('events.sync') }}" class="inline">
+        @csrf
+        <input type="hidden" name="account" value="{{ $account }}">
+        <button type="submit" class="btn btn-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span>Sincronizar</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {{-- Alerts --}}
+  @if (session('status'))
+    <div class="alert alert-success mb-6">
+      <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      {{ session('status') }}
+    </div>
+  @endif
+
+  @error('account')
+    <div class="alert alert-error mb-6">
+      <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      {{ $message }}
+    </div>
+  @enderror
+
+  {{-- Events Grid --}}
+  @if (empty($events))
+    <div class="empty-state">
+      <div class="icon">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
       </div>
-      <div class="flex gap-2">
-        <a href="{{ route('google.connect') }}" class="inline-flex items-center rounded-lg bg-slate-700 px-3 py-2 text-white text-sm hover:bg-slate-600">Conectar otra cuenta</a>
-        <form method="POST" action="{{ route('events.sync') }}">
-          @csrf
-          <input type="hidden" name="account" value="{{ $account }}">
-          <button class="inline-flex items-center rounded-lg bg-indigo-600 px-3 py-2 text-white text-sm hover:bg-indigo-500">Sincronizar a BD</button>
-        </form>
-      </div>
-    </header>
-
-    @if (session('status'))
-      <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('status') }}</div>
-    @endif
-
-    @error('account')
-      <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>
-    @enderror
-
-    @if (empty($events))
-      <div class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">No hay eventos que mostrar. Conecta una cuenta y recarga.</div>
-    @else
-      <div class="grid grid-cols-1 gap-4">
-        @foreach ($events as $e)
-          <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex items-baseline justify-between">
-              <h3 class="text-base font-semibold">{{ $e['summary'] ?? '(Sin título)' }}</h3>
-              <span class="text-xs text-slate-500">{{ $e['calendar_id'] }}</span>
+      <h3>No hay eventos programados</h3>
+      <p>Conecta una cuenta de Google Calendar para ver tus próximas citas</p>
+      <a href="{{ route('google.connect') }}" class="btn btn-primary mt-4 inline-flex">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Conectar Google Calendar
+      </a>
+    </div>
+  @else
+    <div class="grid grid-cols-1 gap-4">
+      @foreach ($events as $e)
+        <div class="event-card">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <h3>{{ $e['summary'] ?? '(Sin título)' }}</h3>
+              <div class="meta">
+                <svg class="w-3 h-3 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                {{ $e['calendar_id'] }}
+              </div>
             </div>
-            <dl class="mt-2 grid grid-cols-2 gap-2 text-sm">
-              <div><dt class="text-slate-500">Inicio</dt><dd class="font-medium">{{ $e['start_at'] }}</dd></div>
-              <div><dt class="text-slate-500">Fin</dt><dd class="font-medium">{{ $e['end_at'] }}</dd></div>
-              <div><dt class="text-slate-500">Zona</dt><dd class="font-medium">{{ $e['timezone'] ?? '—' }}</dd></div>
-              <div><dt class="text-slate-500">Meet</dt><dd class="font-medium truncate">{{ $e['hangout_link'] ?? '—' }}</dd></div>
-            </dl>
-            @if (!empty($e['description']))
-              <details class="mt-3 text-sm text-slate-600">
-                <summary class="cursor-pointer select-none text-slate-500">Descripción</summary>
-                <pre class="mt-2 whitespace-pre-wrap">{{ $e['description'] }}</pre>
-              </details>
+            @if (!empty($e['hangout_link']))
+              <a href="{{ $e['hangout_link'] }}" target="_blank" class="btn btn-primary text-xs py-1 px-3">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                Unirse
+              </a>
             @endif
           </div>
-        @endforeach
-      </div>
-    @endif
-  </main>
-</body>
-</html>
+          
+          <dl>
+            <div>
+              <dt>Inicio</dt>
+              <dd>{{ $e['start_at'] }}</dd>
+            </div>
+            <div>
+              <dt>Fin</dt>
+              <dd>{{ $e['end_at'] }}</dd>
+            </div>
+            <div>
+              <dt>Zona horaria</dt>
+              <dd>{{ $e['timezone'] ?? '—' }}</dd>
+            </div>
+            <div>
+              <dt>Enlace Meet</dt>
+              <dd class="truncate">{{ $e['hangout_link'] ? 'Disponible' : '—' }}</dd>
+            </div>
+          </dl>
+
+          @if (!empty($e['description']))
+            <details class="mt-4">
+              <summary class="cursor-pointer text-sm text-white/60 hover:text-white/80 transition select-none">
+                Ver descripción
+              </summary>
+              <div class="mt-3 text-sm text-white/70 bg-white/5 rounded-lg p-3">
+                <pre class="whitespace-pre-wrap font-sans">{{ $e['description'] }}</pre>
+              </div>
+            </details>
+          @endif
+        </div>
+      @endforeach
+    </div>
+  @endif
+</div>
+@endsection

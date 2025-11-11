@@ -1,68 +1,88 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nimbus • Panel</title>
-  @vite(['resources/css/app.css','resources/js/app.js'])
-</head>
-<body class="min-h-screen bg-slate-50 text-slate-800">
-  <header class="border-b border-slate-200 bg-white">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-      <h1 class="text-xl font-semibold">Nimbus</h1>
-      <nav class="flex items-center gap-4 text-sm">
-        <a href="/" class="text-slate-600 hover:text-slate-900">Inicio</a>
-        <a href="/calendars" class="text-slate-600 hover:text-slate-900">Calendarios</a>
-        <a href="/events" class="text-slate-600 hover:text-slate-900">Eventos</a>
-        <a href="/email" class="text-slate-600 hover:text-slate-900">Prueba email</a>
-      </nav>
+@extends('layouts.app')
+
+@section('title', 'Panel')
+
+@section('content')
+<div class="page-container">
+  {{-- Page Header --}}
+  <div class="page-header">
+    <h1>Panel de control</h1>
+    <p>Gestiona tus calendarios y recordatorios automáticos</p>
+  </div>
+
+  {{-- Stats Grid --}}
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Cuentas conectadas</div>
+      <div class="value">{{ $connectedCount }}</div>
     </div>
-  </header>
+    <div class="stat-card">
+      <div class="label">Calendarios activos</div>
+      <div class="value">{{ $enabledCalendars }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Próximas 48h</div>
+      <div class="value">{{ $upcomingAppointments }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Última sync</div>
+      <div class="value text-base">{{ $lastSyncedAt ? \Carbon\Carbon::parse($lastSyncedAt)->diffForHumans() : '—' }}</div>
+    </div>
+  </div>
 
-  <main class="max-w-6xl mx-auto p-6">
-    <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="rounded-xl border border-slate-200 bg-white p-5">
-        <div class="text-xs text-slate-500">Cuentas conectadas</div>
-        <div class="mt-1 text-2xl font-semibold">{{ $connectedCount }}</div>
+  {{-- Action Cards --}}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <a href="{{ route('calendars.index', ['account' => $account]) }}" class="action-card">
+      <div class="icon">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
       </div>
-      <div class="rounded-xl border border-slate-200 bg-white p-5">
-        <div class="text-xs text-slate-500">Calendarios habilitados</div>
-        <div class="mt-1 text-2xl font-semibold">{{ $enabledCalendars }}</div>
-      </div>
-      <div class="rounded-xl border border-slate-200 bg-white p-5">
-        <div class="text-xs text-slate-500">Próximas 48h</div>
-        <div class="mt-1 text-2xl font-semibold">{{ $upcomingAppointments }}</div>
-      </div>
-      <div class="rounded-xl border border-slate-200 bg-white p-5">
-        <div class="text-xs text-slate-500">Última sync</div>
-        <div class="mt-1 text-2xl font-semibold">{{ $lastSyncedAt ? \Carbon\Carbon::parse($lastSyncedAt)->diffForHumans() : '—' }}</div>
-      </div>
-    </section>
+      <h2>Seleccionar calendarios</h2>
+      <p>Activa o desactiva los calendarios que deseas sincronizar</p>
+    </a>
 
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <a href="{{ route('google.connect') }}" class="rounded-xl border border-slate-200 bg-white p-5 hover:shadow-sm transition">
-        <h2 class="font-semibold">Conectar Google</h2>
-        <p class="mt-1 text-sm text-slate-500">Autoriza acceso de solo lectura a tus calendarios.</p>
-      </a>
-      <a href="{{ route('calendars.index', ['account' => $account]) }}" class="rounded-xl border border-slate-200 bg-white p-5 hover:shadow-sm transition">
-        <h2 class="font-semibold">Seleccionar calendarios</h2>
-        <p class="mt-1 text-sm text-slate-500">Activa/desactiva los calendarios a sincronizar.</p>
-      </a>
-      <a href="{{ route('events.index', ['account' => $account]) }}" class="rounded-xl border border-slate-200 bg-white p-5 hover:shadow-sm transition">
-        <h2 class="font-semibold">Ver eventos</h2>
-        <p class="mt-1 text-sm text-slate-500">Consulta las próximas 48h y sincroniza a la BD.</p>
-      </a>
-    </section>
-
-    <section class="mt-8">
-      <div class="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 class="font-semibold">Estado</h2>
-        <ul class="mt-2 text-sm text-slate-600 list-disc pl-5">
-          <li><strong>Cuenta actual:</strong> {{ $account ?? '—' }}</li>
-          <li><strong>Última sync:</strong> {{ $lastSyncedAt ?? '—' }}</li>
-        </ul>
+    <a href="{{ route('events.index', ['account' => $account]) }}" class="action-card">
+      <div class="icon">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
       </div>
-    </section>
-  </main>
-</body>
-</html>
+      <h2>Ver eventos</h2>
+      <p>Consulta tus próximas citas y sincronízalas a la base de datos</p>
+    </a>
+
+    <a href="/email" class="action-card">
+      <div class="icon">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+      <h2>Probar email</h2>
+      <p>Envía un recordatorio de prueba por correo electrónico</p>
+    </a>
+  </div>
+
+  {{-- Status Info --}}
+  <div class="glass rounded-xl p-6">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--nimbus-accent)] to-[var(--nimbus-primary)] flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <h2 class="text-lg font-semibold text-white">Estado del sistema</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <div>
+        <dt class="text-white/50">Cuenta conectada</dt>
+        <dd class="text-white/90 font-medium mt-1">{{ $account ?? 'Ninguna cuenta conectada' }}</dd>
+      </div>
+      <div>
+        <dt class="text-white/50">Última sincronización</dt>
+        <dd class="text-white/90 font-medium mt-1">{{ $lastSyncedAt ?? 'Nunca sincronizado' }}</dd>
+      </div>
+    </div>
+  </div>
+</div>
+@endsection
