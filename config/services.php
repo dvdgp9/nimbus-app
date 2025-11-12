@@ -41,4 +41,15 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'twilio' => [
+        'sid' => env('TWILIO_SID'),
+        'token' => env('TWILIO_TOKEN'),
+        'from' => env('TWILIO_FROM'), // Phone number for SMS
+        'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'), // WhatsApp number
+    ],
+
+    'whatsapp' => [
+        'professional_phone' => env('WHATSAPP_PROFESSIONAL_PHONE', '+34600000000'),
+    ],
+
 ];

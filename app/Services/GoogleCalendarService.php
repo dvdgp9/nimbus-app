@@ -75,6 +75,10 @@ class GoogleCalendarService
         $count = 0;
         foreach ($events as $e) {
             $count++;
+            
+            // Try to find or create patient from attendee info
+            $patientId = $this->findOrCreatePatient($e);
+            
             DB::table('appointments')->updateOrInsert(
                 ['google_event_id' => $e['google_event_id']],
                 [
@@ -84,9 +88,8 @@ class GoogleCalendarService
                     'start_at' => $this->toDateTime($e['start_at']),
                     'end_at' => $this->toDateTime($e['end_at']),
                     'timezone' => $e['timezone'],
-                    'attendee_name' => $e['attendee_name'],
-                    'attendee_phone' => $e['attendee_phone'],
                     'hangout_link' => $e['hangout_link'],
+                    'patient_id' => $patientId,
                     'last_synced_at' => now(),
                     'raw_payload' => json_encode($e['raw']),
                     'updated_at' => now(),
@@ -95,6 +98,48 @@ class GoogleCalendarService
             );
         }
         return $count;
+    }
+    
+    /**
+     * Find or create patient from event attendee
+     */
+    private function findOrCreatePatient(array $event): ?int
+    {
+        $raw = $event['raw'];
+        $attendees = $raw->getAttendees();
+        
+        if (empty($attendees)) {
+            return null;
+        }
+        
+        $attendee = $attendees[0];
+        $email = $attendee->getEmail();
+        $name = $attendee->getDisplayName() ?? $email;
+        
+        if (!$email) {
+            return null;
+        }
+        
+        // Find or create patient
+        $patient = DB::table('patients')->where('email', $email)->first();
+        
+        if (!$patient) {
+            $patientId = DB::table('patients')->insertGetId([
+                'name' => $name,
+                'email' => $email,
+                'phone' => null, // Will be added manually
+                'preferred_channel' => 'email', // Default to email
+                'consent_email' => false, // Needs manual consent
+                'consent_sms' => false,
+                'consent_whatsapp' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            return $patientId;
+        }
+        
+        return $patient->id;
     }
 
     private function toDateTime(?string $value): ?string

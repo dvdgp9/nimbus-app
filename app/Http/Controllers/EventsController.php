@@ -27,7 +27,20 @@ class EventsController extends Controller
                 ->pluck('calendar_id')
                 ->all();
 
-            $events = $this->calendar->listUpcomingEvents($email, 48, $calendarIds ?: null);
+            try {
+                $events = $this->calendar->listUpcomingEvents($email, 48, $calendarIds ?: null);
+            } catch (\Google\Service\Exception $e) {
+                // Check if error is due to insufficient scopes
+                $error = json_decode($e->getMessage(), true);
+                if (isset($error['error']['code']) && $error['error']['code'] === 403) {
+                    // Delete the token to force re-authentication with new scopes
+                    DB::table('google_tokens')->where('account_email', $email)->delete();
+                    
+                    return redirect()->route('google.connect')
+                        ->with('status', 'Es necesario volver a conectar tu cuenta de Google con los permisos correctos. Por favor, autoriza el acceso a Google Calendar.');
+                }
+                throw $e; // Re-throw if it's a different error
+            }
         }
 
         return view('events.index', [
@@ -48,8 +61,21 @@ class EventsController extends Controller
             ->pluck('calendar_id')
             ->all();
 
-        $events = $this->calendar->listUpcomingEvents($email, 48, $calendarIds ?: null);
-        $count = $this->calendar->syncAppointments($events);
-        return back()->with('status', "Sincronizados {$count} eventos de las próximas 48h");
+        try {
+            $events = $this->calendar->listUpcomingEvents($email, 48, $calendarIds ?: null);
+            $count = $this->calendar->syncAppointments($events);
+            return back()->with('status', "Sincronizados {$count} eventos de las próximas 48h");
+        } catch (\Google\Service\Exception $e) {
+            // Check if error is due to insufficient scopes
+            $error = json_decode($e->getMessage(), true);
+            if (isset($error['error']['code']) && $error['error']['code'] === 403) {
+                // Delete the token to force re-authentication with new scopes
+                DB::table('google_tokens')->where('account_email', $email)->delete();
+                
+                return redirect()->route('google.connect')
+                    ->with('status', 'Es necesario volver a conectar tu cuenta de Google con los permisos correctos. Por favor, autoriza el acceso a Google Calendar.');
+            }
+            throw $e; // Re-throw if it's a different error
+        }
     }
 }

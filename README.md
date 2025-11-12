@@ -35,6 +35,8 @@ Nimbus automatiza recordatorios y confirmaciones de sesiones para consultas de p
    - `MAIL_*` para `confirmacion@nimbus.wthefox.com`
    - `TWILIO_*` por tenant (o credenciales globales)
    - `GOOGLE_*` (client ID/secret + redirect)
+   
+   > **Nota:** Para configurar Google OAuth correctamente, consulta [GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md)
 
 3. Genera clave y migra base de datos
 
