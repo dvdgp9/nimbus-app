@@ -25,7 +25,8 @@ return new class extends Migration
             $table->string('hangout_link')->nullable();
             
             // Patient relationship
-            $table->foreignId('patient_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('patient_id')->nullable();
+            $table->foreign('patient_id')->references('id')->on('patients')->onDelete('set null');
             
             // Nimbus status workflow
             $table->enum('nimbus_status', [

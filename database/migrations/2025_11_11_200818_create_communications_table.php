@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             
             // Relationships
-            $table->foreignId('appointment_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('patient_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('appointment_id')->nullable();
+            $table->unsignedBigInteger('patient_id')->nullable();
+            $table->foreign('appointment_id')->references('id')->on('appointments')->onDelete('cascade');
+            $table->foreign('patient_id')->references('id')->on('patients')->onDelete('set null');
             
             // Communication details
             $table->enum('channel', ['email', 'sms', 'whatsapp']); // Canal usado

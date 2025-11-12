@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             
             // Relationship
-            $table->foreignId('appointment_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('appointment_id');
+            $table->foreign('appointment_id')->references('id')->on('appointments')->onDelete('cascade');
             
             // Link details
             $table->string('token', 64)->unique(); // Token firmado seguro
