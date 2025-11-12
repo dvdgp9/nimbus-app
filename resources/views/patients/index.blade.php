@@ -79,87 +79,89 @@
       @endif
     </div>
   @else
-    <div class="grid grid-cols-1 gap-4">
+    <div class="grid grid-cols-1 gap-3">
       @foreach($patients as $patient)
-        <div class="bg-white/5 rounded-xl border border-white/10 p-6 hover:bg-white/[0.07] transition">
-          <div class="flex items-start justify-between gap-4">
-            {{-- Left: Code and Name --}}
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-3 mb-2">
-                <span class="font-mono text-lg font-bold text-cyan-400">{{ $patient->code }}</span>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                  {{ $patient->preferred_channel === 'email' ? 'bg-blue-500/20 text-blue-300' : '' }}
-                  {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-300' : '' }}
-                  {{ $patient->preferred_channel === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-300' : '' }}">
-                  {{ ucfirst($patient->preferred_channel) }}
-                </span>
-              </div>
-              <h3 class="text-white font-semibold text-lg mb-2">{{ $patient->name }}</h3>
-              <div class="space-y-1 text-sm">
-                @if($patient->email)
-                  <div class="flex items-center gap-2 text-white/70">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                    </svg>
-                    {{ $patient->email }}
-                  </div>
-                @endif
-                @if($patient->phone)
-                  <div class="flex items-center gap-2 text-white/70">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                    </svg>
-                    {{ $patient->phone }}
-                  </div>
-                @endif
-                @if(!$patient->email && !$patient->phone)
-                  <span class="text-white/40">Sin datos de contacto</span>
-                @endif
+        <div class="bg-white/5 rounded-xl border border-white/10 p-4 hover:bg-white/[0.07] transition">
+          <div class="flex items-center justify-between gap-6">
+            {{-- Left: Code, Name and Contact --}}
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+              <span class="font-mono text-xl font-bold text-cyan-400 shrink-0">{{ $patient->code }}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <h3 class="text-white font-semibold">{{ $patient->name }}</h3>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium
+                    {{ $patient->preferred_channel === 'email' ? 'bg-blue-500/20 text-blue-400' : '' }}
+                    {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-400' : '' }}
+                    {{ $patient->preferred_channel === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-400' : '' }}">
+                    {{ ucfirst($patient->preferred_channel) }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-4 text-xs text-white/60">
+                  @if($patient->email)
+                    <span class="flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                      </svg>
+                      {{ $patient->email }}
+                    </span>
+                  @endif
+                  @if($patient->phone)
+                    <span class="flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                      </svg>
+                      {{ $patient->phone }}
+                    </span>
+                  @endif
+                  @if(!$patient->email && !$patient->phone)
+                    <span class="text-white/40">Sin contacto</span>
+                  @endif
+                </div>
               </div>
             </div>
 
-            {{-- Center: Consents and Stats --}}
-            <div class="flex flex-col items-center gap-3">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-white">{{ $patient->appointments_count }}</div>
-                <div class="text-xs text-white/60">{{ $patient->appointments_count === 1 ? 'Cita' : 'Citas' }}</div>
+            {{-- Center: Stats and Consents --}}
+            <div class="flex items-center gap-4 shrink-0">
+              <div class="text-center px-3">
+                <div class="text-xl font-bold text-white">{{ $patient->appointments_count }}</div>
+                <div class="text-[10px] text-white/50">{{ $patient->appointments_count === 1 ? 'Cita' : 'Citas' }}</div>
               </div>
-              <div class="flex gap-1.5">
-                <span class="inline-flex items-center justify-center w-7 h-7 rounded {{ $patient->consent_email ? 'bg-green-500/20 text-green-300' : 'bg-white/5 text-white/30' }}" title="Email">
+              <div class="flex gap-1">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded {{ $patient->consent_email ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/20' }}" title="Email">
                   @if($patient->consent_email)
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                   @else
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   @endif
                 </span>
-                <span class="inline-flex items-center justify-center w-7 h-7 rounded {{ $patient->consent_sms ? 'bg-green-500/20 text-green-300' : 'bg-white/5 text-white/30' }}" title="SMS">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded {{ $patient->consent_sms ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/20' }}" title="SMS">
                   @if($patient->consent_sms)
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                   @else
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   @endif
                 </span>
-                <span class="inline-flex items-center justify-center w-7 h-7 rounded {{ $patient->consent_whatsapp ? 'bg-green-500/20 text-green-300' : 'bg-white/5 text-white/30' }}" title="WhatsApp">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded {{ $patient->consent_whatsapp ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/20' }}" title="WhatsApp">
                   @if($patient->consent_whatsapp)
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                   @else
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   @endif
                 </span>
               </div>
             </div>
 
             {{-- Right: Actions --}}
-            <div class="flex flex-col gap-2">
-              <a href="{{ route('patients.show', $patient) }}" class="inline-flex items-center justify-center px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-cyan-200 rounded-lg transition text-sm font-medium">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex gap-2 shrink-0">
+              <a href="{{ route('patients.show', $patient) }}" class="inline-flex items-center px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 hover:text-cyan-300 rounded-lg transition text-xs font-medium">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                 </svg>
                 Ver
               </a>
-              <a href="{{ route('patients.edit', $patient) }}" class="inline-flex items-center justify-center px-4 py-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white rounded-lg transition text-sm font-medium">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <a href="{{ route('patients.edit', $patient) }}" class="inline-flex items-center px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-lg transition text-xs font-medium">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                 </svg>
                 Editar

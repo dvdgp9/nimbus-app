@@ -70,8 +70,8 @@
 
           <div class="flex items-start justify-between">
             <div class="flex-1">
-              <h3>{{ $apt->summary ?? '(Sin título)' }}</h3>
-              <div class="meta">
+              <h3 class="text-white font-semibold">{{ $apt->summary ?? '(Sin título)' }}</h3>
+              <div class="text-xs text-white/50 mt-1">
                 <svg class="w-3 h-3 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
@@ -98,13 +98,13 @@
             @endif
           </div>
           
-          <dl>
+          <dl class="grid grid-cols-2 gap-3 mt-4 text-sm">
             <div>
-              <dt>Inicio</dt>
-              <dd>{{ $apt->formatted_date }} - {{ $apt->formatted_time }}</dd>
+              <dt class="text-white/50 text-xs">Inicio</dt>
+              <dd class="text-white/90 font-medium">{{ $apt->formatted_date }} - {{ $apt->formatted_time }}</dd>
             </div>
             <div>
-              <dt>Estado</dt>
+              <dt class="text-white/50 text-xs">Estado</dt>
               <dd>
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
                   {{ $apt->nimbus_status === 'confirmed' ? 'bg-green-500/20 text-green-400' : '' }}
@@ -116,12 +116,12 @@
               </dd>
             </div>
             <div>
-              <dt>Zona horaria</dt>
-              <dd>{{ $apt->timezone ?? '—' }}</dd>
+              <dt class="text-white/50 text-xs">Zona horaria</dt>
+              <dd class="text-white/90 font-medium">{{ $apt->timezone ?? '—' }}</dd>
             </div>
             <div>
-              <dt>Recordatorio</dt>
-              <dd>{{ $apt->reminder_sent_at ? $apt->reminder_sent_at->diffForHumans() : '—' }}</dd>
+              <dt class="text-white/50 text-xs">Recordatorio</dt>
+              <dd class="text-white/90 font-medium">{{ $apt->reminder_sent_at ? $apt->reminder_sent_at->diffForHumans() : '—' }}</dd>
             </div>
           </dl>
 
