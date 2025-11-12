@@ -74,19 +74,19 @@
         <dl class="space-y-3">
           <div>
             <dt class="text-sm text-white/60 mb-1">Email</dt>
-            <dd class="text-white">{{ $patient->email ?: '—' }}</dd>
+            <dd class="text-white/90 font-medium">{{ $patient->email ?: '—' }}</dd>
           </div>
           <div>
             <dt class="text-sm text-white/60 mb-1">Teléfono</dt>
-            <dd class="text-white">{{ $patient->phone ?: '—' }}</dd>
+            <dd class="text-white/90 font-medium">{{ $patient->phone ?: '—' }}</dd>
           </div>
           <div>
             <dt class="text-sm text-white/60 mb-1">Canal preferido</dt>
             <dd>
               <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
-                {{ $patient->preferred_channel === 'email' ? 'bg-blue-500/20 text-blue-400' : '' }}
-                {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-400' : '' }}
-                {{ $patient->preferred_channel === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-400' : '' }}">
+                {{ $patient->preferred_channel === 'email' ? 'bg-blue-500/20 text-blue-300' : '' }}
+                {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-300' : '' }}
+                {{ $patient->preferred_channel === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-300' : '' }}">
                 {{ ucfirst($patient->preferred_channel) }}
               </span>
             </dd>
@@ -98,7 +98,7 @@
       <div class="bg-white/5 rounded-xl border border-white/10 p-6">
         <h2 class="text-lg font-semibold text-white mb-4">Consentimientos</h2>
         @if($patient->consent_date)
-          <p class="text-xs text-white/40 mb-3">Consentimiento dado el {{ $patient->consent_date->format('d/m/Y') }}</p>
+          <p class="text-xs text-white/60 mb-3">Consentimiento dado el {{ $patient->consent_date->format('d/m/Y') }}</p>
         @endif
         <div class="space-y-2">
           <div class="flex items-center gap-2">
@@ -173,7 +173,7 @@
                 <div class="flex items-start justify-between gap-4">
                   <div class="flex-1">
                     <h3 class="text-white font-medium mb-1">{{ $apt->summary }}</h3>
-                    <div class="text-sm text-white/60 space-y-1">
+                    <div class="text-sm text-white/70 space-y-1">
                       <div class="flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -187,10 +187,10 @@
                   </div>
                   <div class="flex flex-col items-end gap-2">
                     <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
-                      {{ $apt->nimbus_status === 'confirmed' ? 'bg-green-500/20 text-green-400' : '' }}
-                      {{ $apt->nimbus_status === 'cancelled' ? 'bg-red-500/20 text-red-400' : '' }}
-                      {{ $apt->nimbus_status === 'reminder_sent' ? 'bg-blue-500/20 text-blue-400' : '' }}
-                      {{ $apt->nimbus_status === 'pending' ? 'bg-gray-500/20 text-gray-400' : '' }}">
+                      {{ $apt->nimbus_status === 'confirmed' ? 'bg-green-500/20 text-green-300' : '' }}
+                      {{ $apt->nimbus_status === 'cancelled' ? 'bg-red-500/20 text-red-300' : '' }}
+                      {{ $apt->nimbus_status === 'reminder_sent' ? 'bg-blue-500/20 text-blue-300' : '' }}
+                      {{ $apt->nimbus_status === 'pending' ? 'bg-slate-500/20 text-slate-300' : '' }}">
                       {{ ucfirst($apt->nimbus_status) }}
                     </span>
                     @if($apt->hangout_link)
