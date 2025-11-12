@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
 
 class Patient extends Model
 {
     protected $fillable = [
+        'user_id',
         'code',
         'name',
         'email',
@@ -28,8 +31,25 @@ class Patient extends Model
     ];
 
     /**
+     * Boot method - Global scope for multi-user
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('user', function (Builder $query) {
+            if (auth()->check()) {
+                $query->where('user_id', auth()->id());
+            }
+        });
+    }
+
+    /**
      * Relationships
      */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);

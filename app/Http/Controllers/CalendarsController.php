@@ -14,7 +14,10 @@ class CalendarsController extends Controller
     {
         $email = $request->query('account');
         if (!$email) {
-            $row = DB::table('google_tokens')->orderByDesc('updated_at')->first();
+            $row = DB::table('google_tokens')
+                ->where('user_id', auth()->id())
+                ->orderByDesc('updated_at')
+                ->first();
             $email = $row->account_email ?? null;
         }
         if (!$email) {
@@ -28,7 +31,10 @@ class CalendarsController extends Controller
             $error = json_decode($e->getMessage(), true);
             if (isset($error['error']['code']) && $error['error']['code'] === 403) {
                 // Delete the token to force re-authentication with new scopes
-                DB::table('google_tokens')->where('account_email', $email)->delete();
+                DB::table('google_tokens')
+                    ->where('user_id', auth()->id())
+                    ->where('account_email', $email)
+                    ->delete();
                 
                 return redirect()->route('google.connect')
                     ->with('status', 'Es necesario volver a conectar tu cuenta de Google con los permisos correctos. Por favor, autoriza el acceso a Google Calendar.');
@@ -37,6 +43,7 @@ class CalendarsController extends Controller
         }
         
         $enabled = DB::table('connected_calendars')
+            ->where('user_id', auth()->id())
             ->where('account_email', $email)
             ->pluck('enabled', 'calendar_id')
             ->toArray();
@@ -57,13 +64,20 @@ class CalendarsController extends Controller
         }
 
         DB::transaction(function () use ($email, $selected) {
-            // Deshabilitar todo primero
-            DB::table('connected_calendars')->where('account_email', $email)->update(['enabled' => 0, 'updated_at' => now()]);
+            // Deshabilitar todo primero (solo del usuario actual)
+            DB::table('connected_calendars')
+                ->where('user_id', auth()->id())
+                ->where('account_email', $email)
+                ->update(['enabled' => 0, 'updated_at' => now()]);
 
             // Upsert de los seleccionados (habilitar)
             foreach ($selected as $calId) {
                 DB::table('connected_calendars')->updateOrInsert(
-                    [ 'account_email' => $email, 'calendar_id' => $calId ],
+                    [
+                        'user_id' => auth()->id(),
+                        'account_email' => $email,
+                        'calendar_id' => $calId
+                    ],
                     [ 'enabled' => 1, 'updated_at' => now(), 'created_at' => now() ]
                 );
             }

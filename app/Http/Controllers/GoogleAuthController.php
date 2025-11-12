@@ -48,7 +48,10 @@ class GoogleAuthController extends Controller
         }
 
         DB::table('google_tokens')->updateOrInsert(
-            ['account_email' => $email],
+            [
+                'user_id' => auth()->id(),
+                'account_email' => $email
+            ],
             [
                 'access_token' => json_encode($token),
                 'refresh_token' => $token['refresh_token'] ?? DB::raw('refresh_token'),

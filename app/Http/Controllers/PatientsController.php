@@ -63,6 +63,9 @@ class PatientsController extends Controller
             'preferred_channel.required' => 'Debes seleccionar un canal preferido.',
         ]);
 
+        // Assign user_id
+        $validated['user_id'] = auth()->id();
+        
         // Normalize code to uppercase
         $validated['code'] = strtoupper($validated['code']);
         
