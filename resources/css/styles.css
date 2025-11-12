@@ -184,7 +184,7 @@ nav a:hover::after { width: 100%; }
 
 /* Event card */
 .event-card {
-  @apply glass rounded-xl p-5 transition-all duration-200;
+  @apply glass rounded-xl p-4 transition-all duration-200;
 }
 .event-card:hover {
   @apply bg-white/10;
@@ -194,10 +194,10 @@ nav a:hover::after { width: 100%; }
   @apply text-base font-semibold text-white;
 }
 .event-card .meta {
-  @apply text-xs text-white/50 mt-1;
+  @apply text-xs text-white/70 mt-1;
 }
 .event-card dl {
-  @apply grid grid-cols-2 gap-3 mt-4 text-sm;
+  @apply grid grid-cols-2 gap-2 mt-3 text-sm;
 }
 .event-card dt {
   @apply text-white/50 text-xs;
