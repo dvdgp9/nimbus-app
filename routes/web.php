@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\EventsController;
@@ -28,3 +29,14 @@ Route::post('/events/sync', [EventsController::class, 'sync'])->name('events.syn
 // Calendars selection
 Route::get('/calendars', [CalendarsController::class, 'index'])->name('calendars.index');
 Route::post('/calendars', [CalendarsController::class, 'store'])->name('calendars.store');
+
+// TEMP: Migration runner (remove after use)
+Route::get('/admin/run-migrations', function () {
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        $output = Artisan::output();
+        return response("Migrations executed successfully.\n\n" . nl2br(e($output)), 200);
+    } catch (\Throwable $e) {
+        return response('Migration error: ' . e($e->getMessage()), 500);
+    }
+});
