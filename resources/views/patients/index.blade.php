@@ -83,10 +83,14 @@
       @foreach($patients as $patient)
         <div class="bg-white/5 rounded-xl border border-white/10 p-4 hover:bg-white/[0.07] transition">
           <div class="flex items-start justify-between gap-4">
-            {{-- Left: Code and Name --}}
+            {{-- Left: Name and Code --}}
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
+                <h3 class="text-white font-semibold text-base">{{ $patient->name }}</h3>
+                <span class="text-white/40">-</span>
                 <span class="font-mono text-base font-bold text-cyan-300">{{ $patient->code }}</span>
+              </div>
+              <div class="flex items-center gap-2 mb-1">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                   {{ $patient->preferred_channel === 'email' ? 'bg-blue-500/20 text-blue-300' : '' }}
                   {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-300' : '' }}
@@ -94,7 +98,6 @@
                   {{ ucfirst($patient->preferred_channel) }}
                 </span>
               </div>
-              <h3 class="text-white font-semibold text-base mb-1">{{ $patient->name }}</h3>
               <div class="space-y-0.5 text-[13px]">
                 @if($patient->email)
                   <div class="flex items-center gap-2 text-white/80">

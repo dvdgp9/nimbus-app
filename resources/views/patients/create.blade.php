@@ -128,7 +128,7 @@
               type="checkbox" 
               name="consent_email" 
               value="1"
-              {{ old('consent_email') ? 'checked' : '' }}
+              {{ old('consent_email', true) ? 'checked' : '' }}
               class="w-4 h-4 bg-white/5 border border-white/20 rounded text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
             >
             <span class="text-white/80">Consentimiento para envío de emails</span>
@@ -139,7 +139,7 @@
               type="checkbox" 
               name="consent_sms" 
               value="1"
-              {{ old('consent_sms') ? 'checked' : '' }}
+              {{ old('consent_sms', true) ? 'checked' : '' }}
               class="w-4 h-4 bg-white/5 border border-white/20 rounded text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
             >
             <span class="text-white/80">Consentimiento para envío de SMS</span>
@@ -150,7 +150,7 @@
               type="checkbox" 
               name="consent_whatsapp" 
               value="1"
-              {{ old('consent_whatsapp') ? 'checked' : '' }}
+              {{ old('consent_whatsapp', true) ? 'checked' : '' }}
               class="w-4 h-4 bg-white/5 border border-white/20 rounded text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
             >
             <span class="text-white/80">Consentimiento para envío por WhatsApp</span>

@@ -7,7 +7,7 @@
   {{-- Page Header --}}
   <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
     <div class="page-header mb-0">
-      <h1>Próximas 48 horas</h1>
+      <h1>Próximas 2 semanas</h1>
       <p>Cuenta: <span class="text-white font-medium">{{ $account ?? 'No especificada' }}</span></p>
     </div>
     <div class="flex gap-2">

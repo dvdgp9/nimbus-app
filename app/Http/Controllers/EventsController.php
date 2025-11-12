@@ -20,10 +20,10 @@ class EventsController extends Controller
             $email = $row->account_email ?? null;
         }
 
-        // Get appointments from database (next 48 hours)
+        // Get appointments from database (next 2 weeks)
         $appointments = Appointment::with('patient')
             ->where('start_at', '>=', now())
-            ->where('start_at', '<=', now()->addHours(48))
+            ->where('start_at', '<=', now()->addDays(14))
             ->orderBy('start_at', 'asc')
             ->get();
 
@@ -46,9 +46,9 @@ class EventsController extends Controller
             ->all();
 
         try {
-            $events = $this->calendar->listUpcomingEvents($email, 48, $calendarIds ?: null);
+            $events = $this->calendar->listUpcomingEvents($email, 336, $calendarIds ?: null);
             $count = $this->calendar->syncAppointments($events);
-            return back()->with('status', "Sincronizados {$count} eventos de las próximas 48h");
+            return back()->with('status', "Sincronizados {$count} eventos de las próximas 2 semanas");
         } catch (\Google\Service\Exception $e) {
             // Check if error is due to insufficient scopes
             $error = json_decode($e->getMessage(), true);
