@@ -37,16 +37,16 @@ TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
 WHATSAPP_PROFESSIONAL_PHONE=+34XXXXXXXXX
 ```
 
-### 3. **Configurar SMTP** (si usas email)
+### 3. **Configurar SMTP** (si usas email. Estas claves no son reales)
 
-Ya está configurado en tu `.env`:
+Ejemplo de configuración en `.env` (sustituye por tus valores reales):
 ```env
 MAIL_MAILER=smtp
-MAIL_HOST=nimbus.wthefox.com
+MAIL_HOST=mail.tu-dominio.com
 MAIL_PORT=587
-MAIL_USERNAME="noreply@nimbus.wthefox.com"
-MAIL_PASSWORD="mailNIM2020"
-MAIL_FROM_ADDRESS="noreply@nimbus.wthefox.com"
+MAIL_USERNAME="noreply@tu-dominio.com"
+MAIL_PASSWORD="<SMTP_PASSWORD>"
+MAIL_FROM_ADDRESS="noreply@tu-dominio.com"
 ```
 
 ## 📊 Estructura de Base de Datos
