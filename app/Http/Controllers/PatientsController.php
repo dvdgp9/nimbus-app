@@ -48,13 +48,19 @@ class PatientsController extends Controller
         $validated = $request->validate([
             'code' => 'required|string|max:50|unique:patients,code',
             'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
+            'email' => 'nullable|email|max:255|unique:patients,email',
             'phone' => 'nullable|string|max:20',
             'preferred_channel' => 'required|in:email,sms,whatsapp',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
             'consent_whatsapp' => 'boolean',
             'notes' => 'nullable|string',
+        ], [
+            'code.unique' => 'Ya existe un paciente con este código.',
+            'email.unique' => 'Ya existe un paciente con este email.',
+            'code.required' => 'El código del paciente es obligatorio.',
+            'name.required' => 'El nombre del paciente es obligatorio.',
+            'preferred_channel.required' => 'Debes seleccionar un canal preferido.',
         ]);
 
         // Normalize code to uppercase
@@ -105,13 +111,19 @@ class PatientsController extends Controller
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:50', Rule::unique('patients')->ignore($patient->id)],
             'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('patients')->ignore($patient->id)],
             'phone' => 'nullable|string|max:20',
             'preferred_channel' => 'required|in:email,sms,whatsapp',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
             'consent_whatsapp' => 'boolean',
             'notes' => 'nullable|string',
+        ], [
+            'code.unique' => 'Ya existe otro paciente con este código.',
+            'email.unique' => 'Ya existe otro paciente con este email.',
+            'code.required' => 'El código del paciente es obligatorio.',
+            'name.required' => 'El nombre del paciente es obligatorio.',
+            'preferred_channel.required' => 'Debes seleccionar un canal preferido.',
         ]);
 
         // Normalize code to uppercase
