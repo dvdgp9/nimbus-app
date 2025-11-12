@@ -1,8 +1,4 @@
-@extends('layouts.app')
-
-@section('title', 'Panel')
-
-@section('content')
+<x-app-layout>
 <div class="page-container">
   {{-- Page Header --}}
   <div class="page-header">
@@ -85,4 +81,4 @@
     </div>
   </div>
 </div>
-@endsection
+</x-app-layout>
