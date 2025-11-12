@@ -8,6 +8,7 @@ use App\Http\Controllers\EventsController;
 use App\Http\Controllers\CalendarsController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ShortlinkController;
+use App\Http\Controllers\PatientsController;
 
 Route::get('/', HomeController::class)->name('home');
 
@@ -33,3 +34,6 @@ Route::post('/calendars', [CalendarsController::class, 'store'])->name('calendar
 
 // Shortlink actions (confirm/cancel/reschedule)
 Route::get('/link/{token}', [ShortlinkController::class, 'handle'])->name('shortlink.handle');
+
+// Patients management
+Route::resource('patients', PatientsController::class);
