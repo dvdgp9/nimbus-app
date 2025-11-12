@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
 use App\Services\GoogleCalendarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,33 +20,16 @@ class EventsController extends Controller
             $email = $row->account_email ?? null;
         }
 
-        $events = [];
-        if ($email) {
-            $calendarIds = DB::table('connected_calendars')
-                ->where('account_email', $email)
-                ->where('enabled', 1)
-                ->pluck('calendar_id')
-                ->all();
-
-            try {
-                $events = $this->calendar->listUpcomingEvents($email, 48, $calendarIds ?: null);
-            } catch (\Google\Service\Exception $e) {
-                // Check if error is due to insufficient scopes
-                $error = json_decode($e->getMessage(), true);
-                if (isset($error['error']['code']) && $error['error']['code'] === 403) {
-                    // Delete the token to force re-authentication with new scopes
-                    DB::table('google_tokens')->where('account_email', $email)->delete();
-                    
-                    return redirect()->route('google.connect')
-                        ->with('status', 'Es necesario volver a conectar tu cuenta de Google con los permisos correctos. Por favor, autoriza el acceso a Google Calendar.');
-                }
-                throw $e; // Re-throw if it's a different error
-            }
-        }
+        // Get appointments from database (next 48 hours)
+        $appointments = Appointment::with('patient')
+            ->where('start_at', '>=', now())
+            ->where('start_at', '<=', now()->addHours(48))
+            ->orderBy('start_at', 'asc')
+            ->get();
 
         return view('events.index', [
             'account' => $email,
-            'events' => $events,
+            'appointments' => $appointments,
         ]);
     }
 

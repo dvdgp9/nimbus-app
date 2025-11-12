@@ -101,45 +101,53 @@ class GoogleCalendarService
     }
     
     /**
-     * Find or create patient from event attendee
+     * Find patient by code extracted from event title
+     * The title should start with the patient code (e.g., "P123 - Consulta")
      */
     private function findOrCreatePatient(array $event): ?int
     {
-        $raw = $event['raw'];
-        $attendees = $raw->getAttendees();
+        $title = $event['summary'] ?? '';
         
-        if (empty($attendees)) {
+        // Extract patient code from title
+        // Patterns supported:
+        // - "P123 - Consulta" → P123
+        // - "P123: Consulta" → P123
+        // - "P123 Consulta" → P123
+        // - Just "P123" → P123
+        $code = $this->extractPatientCode($title);
+        
+        if (!$code) {
+            // No code found in title
             return null;
         }
         
-        $attendee = $attendees[0];
-        $email = $attendee->getEmail();
-        $name = $attendee->getDisplayName() ?? $email;
+        // Find patient by code
+        $patient = DB::table('patients')->where('code', $code)->first();
         
-        if (!$email) {
-            return null;
+        if ($patient) {
+            return $patient->id;
         }
         
-        // Find or create patient
-        $patient = DB::table('patients')->where('email', $email)->first();
+        // Patient not found - appointment will be marked as unassigned
+        return null;
+    }
+    
+    /**
+     * Extract patient code from event title
+     * Supports formats: "CODE - Text", "CODE: Text", "CODE Text", or just "CODE"
+     */
+    private function extractPatientCode(string $title): ?string
+    {
+        // Trim whitespace
+        $title = trim($title);
         
-        if (!$patient) {
-            $patientId = DB::table('patients')->insertGetId([
-                'name' => $name,
-                'email' => $email,
-                'phone' => null, // Will be added manually
-                'preferred_channel' => 'email', // Default to email
-                'consent_email' => false, // Needs manual consent
-                'consent_sms' => false,
-                'consent_whatsapp' => false,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            
-            return $patientId;
+        // Try to match a code at the beginning
+        // Pattern: alphanumeric code followed by separator (-, :, space) or end of string
+        if (preg_match('/^([A-Za-z0-9]+)(?:\s*[-:]\s*|\s+|$)/', $title, $matches)) {
+            return strtoupper($matches[1]); // Normalize to uppercase
         }
         
-        return $patient->id;
+        return null;
     }
 
     private function toDateTime(?string $value): ?string

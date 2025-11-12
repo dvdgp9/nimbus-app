@@ -43,39 +43,53 @@
     </div>
   @enderror
 
-  {{-- Events Grid --}}
-  @if (empty($events))
+  {{-- Appointments Grid --}}
+  @if ($appointments->isEmpty())
     <div class="empty-state">
       <div class="icon">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
         </svg>
       </div>
-      <h3>No hay eventos programados</h3>
-      <p>Conecta una cuenta de Google Calendar para ver tus próximas citas</p>
-      <a href="{{ route('google.connect') }}" class="btn btn-primary mt-4 inline-flex">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-        </svg>
-        Conectar Google Calendar
-      </a>
+      <h3>No hay citas sincronizadas</h3>
+      <p>Haz click en "Sincronizar" para importar tus próximas citas de Google Calendar</p>
     </div>
   @else
     <div class="grid grid-cols-1 gap-4">
-      @foreach ($events as $e)
-        <div class="event-card">
+      @foreach ($appointments as $apt)
+        <div class="event-card {{ $apt->patient_id ? '' : 'border-2 border-yellow-500/50' }}">
+          {{-- Patient Status Badge --}}
+          @if (!$apt->patient_id)
+            <div class="mb-3 flex items-center gap-2 text-yellow-400 text-sm font-medium">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span>Sin paciente asignado</span>
+            </div>
+          @endif
+
           <div class="flex items-start justify-between">
             <div class="flex-1">
-              <h3>{{ $e['summary'] ?? '(Sin título)' }}</h3>
+              <h3>{{ $apt->summary ?? '(Sin título)' }}</h3>
               <div class="meta">
                 <svg class="w-3 h-3 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
-                {{ $e['calendar_id'] }}
+                {{ $apt->calendar_id }}
               </div>
+              
+              {{-- Patient Info --}}
+              @if ($apt->patient)
+                <div class="mt-2 text-sm text-green-400 flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                  <strong>{{ $apt->patient->code }}</strong> - {{ $apt->patient->name }}
+                </div>
+              @endif
             </div>
-            @if (!empty($e['hangout_link']))
-              <a href="{{ $e['hangout_link'] }}" target="_blank" class="btn btn-primary text-xs py-1 px-3">
+            @if ($apt->hangout_link)
+              <a href="{{ $apt->hangout_link }}" target="_blank" class="btn btn-primary text-xs py-1 px-3">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                 </svg>
@@ -87,29 +101,37 @@
           <dl>
             <div>
               <dt>Inicio</dt>
-              <dd>{{ $e['start_at'] }}</dd>
+              <dd>{{ $apt->formatted_date }} - {{ $apt->formatted_time }}</dd>
             </div>
             <div>
-              <dt>Fin</dt>
-              <dd>{{ $e['end_at'] }}</dd>
+              <dt>Estado</dt>
+              <dd>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                  {{ $apt->nimbus_status === 'confirmed' ? 'bg-green-500/20 text-green-400' : '' }}
+                  {{ $apt->nimbus_status === 'cancelled' ? 'bg-red-500/20 text-red-400' : '' }}
+                  {{ $apt->nimbus_status === 'reminder_sent' ? 'bg-blue-500/20 text-blue-400' : '' }}
+                  {{ $apt->nimbus_status === 'pending' ? 'bg-gray-500/20 text-gray-400' : '' }}">
+                  {{ ucfirst($apt->nimbus_status) }}
+                </span>
+              </dd>
             </div>
             <div>
               <dt>Zona horaria</dt>
-              <dd>{{ $e['timezone'] ?? '—' }}</dd>
+              <dd>{{ $apt->timezone ?? '—' }}</dd>
             </div>
             <div>
-              <dt>Enlace Meet</dt>
-              <dd class="truncate">{{ $e['hangout_link'] ? 'Disponible' : '—' }}</dd>
+              <dt>Recordatorio</dt>
+              <dd>{{ $apt->reminder_sent_at ? $apt->reminder_sent_at->diffForHumans() : '—' }}</dd>
             </div>
           </dl>
 
-          @if (!empty($e['description']))
+          @if ($apt->description)
             <details class="mt-4">
               <summary class="cursor-pointer text-sm text-white/60 hover:text-white/80 transition select-none">
                 Ver descripción
               </summary>
               <div class="mt-3 text-sm text-white/70 bg-white/5 rounded-lg p-3">
-                <pre class="whitespace-pre-wrap font-sans">{{ $e['description'] }}</pre>
+                <pre class="whitespace-pre-wrap font-sans">{{ $apt->description }}</pre>
               </div>
             </details>
           @endif
