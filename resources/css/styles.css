@@ -55,10 +55,12 @@ nav a::after { content: ""; position: absolute; left: 0; bottom: -6px; height: 2
 nav a:hover::after { width: 100%; }
 
 /* Glass utility */
-@utility glass {
-  background: rgba(255,255,255,0.07); 
-  backdrop-filter: blur(10px); 
-  border: 1px solid rgba(255,255,255,0.1);
+@layer utilities {
+  .glass {
+    background: rgba(255,255,255,0.07); 
+    backdrop-filter: blur(10px); 
+    border: 1px solid rgba(255,255,255,0.1);
+  }
 }
 
 /* Hero banner (optional for future landing) */
@@ -215,17 +217,17 @@ nav a:hover::after { width: 100%; }
 }
 .form-input {
   @apply block w-full rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 px-4 py-2.5 text-sm transition-all;
-  @apply focus:bg-white/10 focus:border-[var(--nimbus-accent)] focus:ring-2 focus:ring-[var(--nimbus-accent)]/20 focus:outline-none;
+  @apply focus:bg-white/10 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 focus:outline-none;
 }
 .form-input:hover {
-  @apply bg-white/7 border-white/20;
+  @apply bg-white/10 border-white/20;
 }
 .form-checkbox {
-  @apply w-5 h-5 rounded border-white/20 bg-white/5 text-[var(--nimbus-primary)] transition-all;
-  @apply focus:ring-2 focus:ring-[var(--nimbus-accent)]/20 focus:ring-offset-0;
+  @apply w-5 h-5 rounded border-white/20 bg-white/5 text-indigo-500 transition-all;
+  @apply focus:ring-2 focus:ring-cyan-400/20 focus:ring-offset-0;
 }
 .form-checkbox:checked {
-  @apply bg-gradient-to-br from-[var(--nimbus-accent)] to-[var(--nimbus-primary)] border-transparent;
+  @apply bg-gradient-to-br from-cyan-400 to-indigo-500 border-transparent;
 }
 
 /* Alert styles */
