@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<x-app-layout>
 
-@section('title', 'Seleccionar calendarios')
 
-@section('content')
 <div class="page-container">
   {{-- Page Header --}}
   <div class="page-header">
@@ -86,4 +84,4 @@
     </div>
   </div>
 </div>
-@endsection
+</x-app-layout>

@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<x-app-layout>
 
-@section('title', $patient->name)
 
-@section('content')
 <div class="page-container max-w-5xl">
   {{-- Page Header --}}
   <div class="mb-8">
@@ -208,4 +206,4 @@
     </div>
   </div>
 </div>
-@endsection
+</x-app-layout>

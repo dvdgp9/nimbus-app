@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<x-app-layout>
 
-@section('title', 'Cuenta conectada')
 
-@section('content')
 <div class="page-container max-w-2xl">
   {{-- Success State --}}
   <div class="glass rounded-xl p-8 text-center">
@@ -88,4 +86,4 @@
     </ol>
   </div>
 </div>
-@endsection
+</x-app-layout>

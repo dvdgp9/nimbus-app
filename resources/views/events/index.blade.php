@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<x-app-layout>
 
-@section('title', 'Próximos eventos')
 
-@section('content')
 <div class="page-container">
   {{-- Page Header --}}
   <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -140,4 +138,4 @@
     </div>
   @endif
 </div>
-@endsection
+</x-app-layout>

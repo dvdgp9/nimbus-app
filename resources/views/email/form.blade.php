@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<x-app-layout>
 
-@section('title', 'Probar email')
 
-@section('content')
 <div class="page-container max-w-3xl">
   {{-- Page Header --}}
   <div class="page-header">
@@ -123,4 +121,4 @@
     </div>
   </div>
 </div>
-@endsection
+</x-app-layout>

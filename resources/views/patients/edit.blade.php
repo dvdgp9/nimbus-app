@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<x-app-layout>
 
-@section('title', 'Editar Paciente')
 
-@section('content')
 <div class="page-container max-w-3xl">
   {{-- Page Header --}}
   <div class="mb-8">
@@ -194,4 +192,4 @@
     </div>
   </form>
 </div>
-@endsection
+</x-app-layout>

@@ -1,8 +1,4 @@
-@extends('layouts.app')
-
-@section('title', 'Conectar Google Calendar')
-
-@section('content')
+<x-app-layout>
 <div class="page-container max-w-2xl">
   {{-- Info Alert if needed --}}
   @if (session('status'))
@@ -105,4 +101,4 @@
     </div>
   </div>
 </div>
-@endsection
+</x-app-layout>
