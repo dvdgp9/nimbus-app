@@ -30,7 +30,7 @@
           type="text" 
           id="code" 
           name="code" 
-          value="{{ old('code') }}"
+          value="{{ old('code', request('code')) }}"
           required
           class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition @error('code') border-red-500/50 @enderror"
           placeholder="Ej: P123, ABC, 001"
@@ -50,7 +50,7 @@
           type="text" 
           id="name" 
           name="name" 
-          value="{{ old('name') }}"
+          value="{{ old('name', request('name')) }}"
           required
           class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition @error('name') border-red-500/50 @enderror"
           placeholder="Nombre del paciente"

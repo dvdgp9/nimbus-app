@@ -77,36 +77,27 @@
         <div class="event-card {{ $patientBelongsToUser ? 'border-2 border-green-500/50' : 'border-2 border-yellow-500/50' }}">
           {{-- Patient Status Badge --}}
           @if (!$apt->patient)
-            <div class="mb-3 space-y-3 rounded-lg border border-yellow-400/40 bg-yellow-400/5 p-4">
-              <div class="flex items-center gap-2 text-yellow-400 text-sm font-medium">
+            <div class="mb-3 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+              <div class="inline-flex items-center gap-1 text-yellow-400 font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
-                <span>Paciente no encontrado en Nimbus</span>
+                <span>Sin paciente asignado</span>
               </div>
-              <p class="text-sm text-white/70">
-                Usa este botón para crearlo rápidamente. Se tomará el código y nombre del título del evento.
-              </p>
-              <div class="flex flex-wrap gap-2 text-xs text-white/60">
-                @if ($apt->suggested_patient_code)
-                  <span class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18" />
-                    </svg>
-                    Código sugerido: {{ $apt->suggested_patient_code }}
-                  </span>
-                @endif
-                @if ($apt->suggested_patient_name)
-                  <span class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Nombre sugerido: {{ $apt->suggested_patient_name }}
-                  </span>
-                @endif
-              </div>
-              <a href="{{ $patientCreateUrl }}" class="btn btn-secondary w-full sm:w-auto">
-                Crear paciente desde este evento
+
+              @if ($apt->suggested_patient_code || $apt->suggested_patient_name)
+                <span class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 text-white/70">
+                  @if ($apt->suggested_patient_code)
+                    <span><strong>{{ $apt->suggested_patient_code }}</strong></span>
+                  @endif
+                  @if ($apt->suggested_patient_name)
+                    <span>- {{ $apt->suggested_patient_name }}</span>
+                  @endif
+                </span>
+              @endif
+
+              <a href="{{ $patientCreateUrl }}" class="btn btn-secondary btn-xs">
+                Crear paciente
               </a>
             </div>
           @elseif (!$patientBelongsToUser)
