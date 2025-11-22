@@ -49,9 +49,23 @@ class PatientsController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:patients,code',
+            'code' => [
+                'required', 
+                'string', 
+                'max:50', 
+                Rule::unique('patients')->where(function ($query) {
+                    return $query->where('user_id', auth()->id());
+                })
+            ],
             'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255|unique:patients,email',
+            'email' => [
+                'nullable', 
+                'email', 
+                'max:255', 
+                Rule::unique('patients')->where(function ($query) {
+                    return $query->where('user_id', auth()->id());
+                })
+            ],
             'phone' => 'nullable|string|max:20',
             'preferred_channel' => 'required|in:email,sms,whatsapp',
             'consent_email' => 'boolean',
@@ -130,9 +144,23 @@ class PatientsController extends Controller
         }
         
         $validated = $request->validate([
-            'code' => ['required', 'string', 'max:50', Rule::unique('patients')->ignore($patient->id)],
+            'code' => [
+                'required', 
+                'string', 
+                'max:50', 
+                Rule::unique('patients')->where(function ($query) {
+                    return $query->where('user_id', auth()->id());
+                })->ignore($patient->id)
+            ],
             'name' => 'required|string|max:255',
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('patients')->ignore($patient->id)],
+            'email' => [
+                'nullable', 
+                'email', 
+                'max:255', 
+                Rule::unique('patients')->where(function ($query) {
+                    return $query->where('user_id', auth()->id());
+                })->ignore($patient->id)
+            ],
             'phone' => 'nullable|string|max:20',
             'preferred_channel' => 'required|in:email,sms,whatsapp',
             'consent_email' => 'boolean',
