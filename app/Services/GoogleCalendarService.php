@@ -74,12 +74,16 @@ class GoogleCalendarService
     {
         $count = 0;
         $googleIds = [];
+        $detectedCalendars = [];
         foreach ($events as $e) {
             $count++;
             
             // Track event id for later cleanup
             if (!empty($e['google_event_id'])) {
                 $googleIds[] = $e['google_event_id'];
+            }
+            if (!empty($e['calendar_id'])) {
+                $detectedCalendars[] = $e['calendar_id'];
             }
 
             // Try to find or create patient from attendee info
@@ -109,14 +113,22 @@ class GoogleCalendarService
         }
 
         // Cleanup: remove appointments that no longer exist in Google for these calendars
-        if (!empty($calendarIds) && !empty($googleIds)) {
-            DB::table('appointments')
-                ->whereIn('calendar_id', $calendarIds)
+        $targetCalendars = $calendarIds ?: array_values(array_unique(array_filter($detectedCalendars)));
+        if (!empty($targetCalendars)) {
+            $now = now();
+            $upperBound = $now->copy()->addHours($hoursAhead);
+
+            $query = DB::table('appointments')
+                ->whereIn('calendar_id', $targetCalendars)
                 ->whereNotNull('google_event_id')
-                ->where('start_at', '>=', now())
-                ->where('start_at', '<=', now()->addHours($hoursAhead))
-                ->whereNotIn('google_event_id', $googleIds)
-                ->delete();
+                ->where('start_at', '>=', $now)
+                ->where('start_at', '<=', $upperBound);
+
+            if (!empty($googleIds)) {
+                $query->whereNotIn('google_event_id', $googleIds);
+            }
+
+            $query->delete();
         }
 
         return $count;
