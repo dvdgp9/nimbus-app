@@ -63,13 +63,14 @@
       {{-- Email --}}
       <div>
         <label for="email" class="block text-sm font-medium text-white/80 mb-2">
-          Email
+          Email <span class="text-red-400">*</span>
         </label>
         <input 
           type="email" 
           id="email" 
           name="email" 
           value="{{ old('email') }}"
+          required
           class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition @error('email') border-red-500/50 @enderror"
           placeholder="correo@ejemplo.com"
         >
@@ -81,13 +82,14 @@
       {{-- Phone --}}
       <div>
         <label for="phone" class="block text-sm font-medium text-white/80 mb-2">
-          Teléfono
+          Teléfono <span class="text-red-400">*</span>
         </label>
         <input 
           type="text" 
           id="phone" 
           name="phone" 
           value="{{ old('phone') }}"
+          required
           class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition @error('phone') border-red-500/50 @enderror"
           placeholder="+34XXXXXXXXX"
         >

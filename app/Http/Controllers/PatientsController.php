@@ -59,14 +59,14 @@ class PatientsController extends Controller
             ],
             'name' => 'required|string|max:255',
             'email' => [
-                'nullable', 
+                'required', 
                 'email', 
                 'max:255', 
                 Rule::unique('patients')->where(function ($query) {
                     return $query->where('user_id', auth()->id());
                 })
             ],
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'required|string|max:20',
             'preferred_channel' => 'required|in:email,sms,whatsapp',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
@@ -77,6 +77,8 @@ class PatientsController extends Controller
             'email.unique' => 'Ya existe un paciente con este email.',
             'code.required' => 'El código del paciente es obligatorio.',
             'name.required' => 'El nombre del paciente es obligatorio.',
+            'email.required' => 'El email del paciente es obligatorio.',
+            'phone.required' => 'El teléfono del paciente es obligatorio.',
             'preferred_channel.required' => 'Debes seleccionar un canal preferido.',
         ]);
 
@@ -154,14 +156,14 @@ class PatientsController extends Controller
             ],
             'name' => 'required|string|max:255',
             'email' => [
-                'nullable', 
+                'required', 
                 'email', 
                 'max:255', 
                 Rule::unique('patients')->where(function ($query) {
                     return $query->where('user_id', auth()->id());
                 })->ignore($patient->id)
             ],
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'required|string|max:20',
             'preferred_channel' => 'required|in:email,sms,whatsapp',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
@@ -172,6 +174,8 @@ class PatientsController extends Controller
             'email.unique' => 'Ya existe otro paciente con este email.',
             'code.required' => 'El código del paciente es obligatorio.',
             'name.required' => 'El nombre del paciente es obligatorio.',
+            'email.required' => 'El email del paciente es obligatorio.',
+            'phone.required' => 'El teléfono del paciente es obligatorio.',
             'preferred_channel.required' => 'Debes seleccionar un canal preferido.',
         ]);
 
