@@ -38,6 +38,7 @@ Route::middleware(['auth'])->group(function () {
     // Events endpoints
     Route::get('/events', [EventsController::class, 'index'])->name('events.index');
     Route::post('/events/sync', [EventsController::class, 'sync'])->name('events.sync');
+    Route::post('/events/reminders', [EventsController::class, 'sendReminders'])->name('events.reminders');
 
     // Calendars selection
     Route::get('/calendars', [CalendarsController::class, 'index'])->name('calendars.index');

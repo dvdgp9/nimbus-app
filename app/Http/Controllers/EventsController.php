@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Services\GoogleCalendarService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class EventsController extends Controller
 {
-    public function __construct(private GoogleCalendarService $calendar) {}
+    public function __construct(
+        private GoogleCalendarService $calendar,
+        private NotificationService $notifications,
+    ) {}
 
     public function index(Request $request)
     {
@@ -79,5 +83,48 @@ class EventsController extends Controller
             }
             throw $e; // Re-throw if it's a different error
         }
+    }
+
+    /**
+     * Send reminders for upcoming appointments (next 24h) for current user.
+     */
+    public function sendReminders(Request $request)
+    {
+        // For now: fixed 24 hours window
+        $hoursAhead = 24;
+
+        $appointments = Appointment::needsReminder($hoursAhead)
+            ->withPatient()
+            ->whereHas('patient', function ($query) {
+                $query->where('user_id', auth()->id());
+            })
+            ->get();
+
+        if ($appointments->isEmpty()) {
+            return back()->with('status', 'No hay citas que necesiten recordatorio en las próximas 24 horas.');
+        }
+
+        $sent = 0;
+        $failed = 0;
+
+        foreach ($appointments as $appointment) {
+            if (!$appointment->patient) {
+                continue;
+            }
+
+            $ok = $this->notifications->sendReminder($appointment);
+            if ($ok) {
+                $sent++;
+            } else {
+                $failed++;
+            }
+        }
+
+        $message = "Recordatorios enviados: {$sent}";
+        if ($failed > 0) {
+            $message .= " | Fallidos: {$failed}";
+        }
+
+        return back()->with('status', $message);
     }
 }
