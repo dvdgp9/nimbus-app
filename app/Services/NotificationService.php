@@ -241,7 +241,8 @@ class NotificationService
      */
     protected function getWhatsAppRescheduleLink(Appointment $appointment): string
     {
-        $phone = config('services.whatsapp.professional_phone', '+34600000000');
+        $userPhone = optional($appointment->user)->whatsapp_phone;
+        $phone = $userPhone ?: config('services.whatsapp.professional_phone', '+34600000000');
         $message = urlencode(sprintf(
             "Hola! Necesito reprogramar mi cita del %s a las %s. ¿Qué disponibilidad tienes?",
             $appointment->formatted_date,
