@@ -55,14 +55,26 @@
   @else
     <div class="grid grid-cols-1 gap-4">
       @foreach ($appointments as $apt)
-        <div class="event-card {{ $apt->patient_id ? '' : 'border-2 border-yellow-500/50' }}">
+        @php
+          $patientBelongsToUser = $apt->patient && $apt->patient->user_id === auth()->id();
+          $hasPatientNotOwned = $apt->patient && $apt->patient->user_id !== auth()->id();
+          $hasNoPatient = !$apt->patient;
+        @endphp
+        <div class="event-card {{ $patientBelongsToUser ? 'border-2 border-green-500/50' : 'border-2 border-yellow-500/50' }}">
           {{-- Patient Status Badge --}}
-          @if (!$apt->patient_id)
+          @if ($hasNoPatient)
             <div class="mb-3 flex items-center gap-2 text-yellow-400 text-sm font-medium">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
               </svg>
               <span>Sin paciente asignado</span>
+            </div>
+          @elseif ($hasPatientNotOwned)
+            <div class="mb-3 flex items-center gap-2 text-yellow-400 text-sm font-medium">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span>Paciente de otro usuario</span>
             </div>
           @endif
 
@@ -78,7 +90,7 @@
               
               {{-- Patient Info --}}
               @if ($apt->patient)
-                <div class="mt-2 text-sm text-green-400 flex items-center gap-1">
+                <div class="mt-2 text-sm {{ $patientBelongsToUser ? 'text-green-400' : 'text-yellow-400' }} flex items-center gap-1">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                   </svg>

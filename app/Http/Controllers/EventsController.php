@@ -23,12 +23,19 @@ class EventsController extends Controller
             $email = $row->account_email ?? null;
         }
 
-        // Get appointments from database (next 2 weeks) for current user's patients
+        // Get calendar IDs for current user's enabled calendars
+        $calendarIds = DB::table('connected_calendars')
+            ->where('user_id', auth()->id())
+            ->where('enabled', 1)
+            ->pluck('calendar_id')
+            ->all();
+
+        // Get ALL appointments from user's calendars (next 2 weeks)
+        // Don't filter by patient ownership - show all events
         $appointments = Appointment::with('patient')
-            ->whereHas('patient', function ($query) {
-                $query->where('user_id', auth()->id());
+            ->when($calendarIds, function ($query) use ($calendarIds) {
+                $query->whereIn('calendar_id', $calendarIds);
             })
-            ->orWhereNull('patient_id')
             ->where('start_at', '>=', now())
             ->where('start_at', '<=', now()->addDays(14))
             ->orderBy('start_at', 'asc')
