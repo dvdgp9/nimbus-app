@@ -47,7 +47,6 @@ class ShortlinkController extends Controller
         switch ($action) {
             case 'confirm':
                 $appointment->confirm();
-                $shortlink->markAsUsed($request->ip(), $request->userAgent() ?? '');
                 
                 return view('shortlinks.success', [
                     'title' => '✅ Cita confirmada',
@@ -57,7 +56,6 @@ class ShortlinkController extends Controller
 
             case 'cancel':
                 $appointment->cancel();
-                $shortlink->markAsUsed($request->ip(), $request->userAgent() ?? '');
                 
                 return view('shortlinks.success', [
                     'title' => '❌ Cita cancelada',
@@ -70,8 +68,6 @@ class ShortlinkController extends Controller
                 $phone = config('whatsapp.professional_phone');
                 $message = urlencode("Hola, necesito reprogramar mi cita: {$appointment->summary} del {$appointment->formatted_date}");
                 $whatsappUrl = "https://wa.me/{$phone}?text={$message}";
-                
-                $shortlink->markAsUsed($request->ip(), $request->userAgent() ?? '');
                 
                 return redirect()->away($whatsappUrl);
 
