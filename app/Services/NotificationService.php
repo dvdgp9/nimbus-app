@@ -224,30 +224,16 @@ class NotificationService
         $day = $appointment->formatted_date;
         $time = $appointment->formatted_time;
         
-        return match($type) {
-            1 => "Hola, {$firstName} 😊\n" .
-                 "Te recuerdo nuestra sesión del {$day} a las {$time} (duración 55 minutos).\n" .
-                 "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
-                 "El pago debe realizarse al confirmar la sesión.\n" .
-                 "¡Gracias! 🤗",
-                 
-            3 => "Hola, {$firstName} 😊\n" .
-                 "Te recuerdo nuestra sesión del {$day} a las {$time} (duración 55 minutos).\n" .
-                 "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
-                 "Recordarte también que tu bono finalizó en la última sesión; el nuevo pago debe realizarse al confirmar.\n" .
-                 "¡Gracias! 🤗",
-                 
-            4 => "Hola, {$firstName} 😊\n" .
-                 "Te recuerdo nuestra primera sesión el {$day} a las {$time} (hora peninsular española), con una duración de 55 minutos.\n" .
-                 "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
-                 "Recordarte también que el pago debe realizarse con más de 24 horas de antelación, por Bizum a este número o por transferencia bancaria.\n" .
-                 "¡Gracias! 🤗",
-                 
-            default => "Hola, {$firstName} 😊\n" .
-                       "Te recuerdo nuestra sesión del {$day} a las {$time} (duración 55 minutos).\n" .
-                       "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
-                       "¡Gracias! 🤗",
-        };
+        // IMPORTANTE: este texto debe coincidir EXACTAMENTE con la plantilla de WhatsApp aprobada
+        // Hola {{1}} 😊
+        // Te recuerdo nuestra sesión del {{2}} a las {{3}} (duración: 55 minutos).
+        // Por favor, confirma o reprograma usando los botones que verás a continuación.
+        // ¡Gracias! 🤗
+
+        return "Hola {$firstName} 😊\n" .
+               "Te recuerdo nuestra sesión del {$day} a las {$time} (duración: 55 minutos).\n" .
+               "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
+               "¡Gracias! 🤗";
     }
 
     /**
