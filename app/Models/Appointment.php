@@ -130,4 +130,36 @@ class Appointment extends Model
     {
         return $this->start_at->format('H:i');
     }
+
+    public function getSuggestedPatientCodeAttribute(): ?string
+    {
+        return $this->extractPatientCode($this->summary ?? '');
+    }
+
+    public function getSuggestedPatientNameAttribute(): ?string
+    {
+        return $this->extractPatientName($this->summary ?? '');
+    }
+
+    protected function extractPatientCode(string $title): ?string
+    {
+        $title = trim($title);
+
+        if (preg_match('/^([A-Za-z0-9]+)(?:\s*[-:]\s*|\s+|$)/', $title, $matches)) {
+            return strtoupper($matches[1]);
+        }
+
+        return null;
+    }
+
+    protected function extractPatientName(string $title): ?string
+    {
+        $title = trim($title);
+
+        if (preg_match('/^[A-Za-z0-9]+(?:\s*[-:]\s*|\s+)(.*)$/', $title, $matches)) {
+            return trim($matches[1]) ?: null;
+        }
+
+        return null;
+    }
 }
