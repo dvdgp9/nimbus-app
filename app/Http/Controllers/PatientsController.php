@@ -16,11 +16,14 @@ class PatientsController extends Controller
         $search = $request->query('search');
         
         $patients = Patient::query()
+            ->where('user_id', auth()->id())
             ->when($search, function ($query, $search) {
-                $query->where('code', 'like', "%{$search}%")
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', "%{$search}%")
                       ->orWhere('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
                       ->orWhere('phone', 'like', "%{$search}%");
+                });
             })
             ->withCount('appointments')
             ->orderBy('created_at', 'desc')
@@ -87,6 +90,11 @@ class PatientsController extends Controller
      */
     public function show(Patient $patient)
     {
+        // Verify patient belongs to authenticated user
+        if ($patient->user_id !== auth()->id()) {
+            abort(403, 'No tienes permiso para ver este paciente.');
+        }
+        
         $patient->load(['appointments' => function ($query) {
             $query->orderBy('start_at', 'desc');
         }]);
@@ -101,6 +109,11 @@ class PatientsController extends Controller
      */
     public function edit(Patient $patient)
     {
+        // Verify patient belongs to authenticated user
+        if ($patient->user_id !== auth()->id()) {
+            abort(403, 'No tienes permiso para editar este paciente.');
+        }
+        
         return view('patients.edit', [
             'patient' => $patient,
         ]);
@@ -111,6 +124,11 @@ class PatientsController extends Controller
      */
     public function update(Request $request, Patient $patient)
     {
+        // Verify patient belongs to authenticated user
+        if ($patient->user_id !== auth()->id()) {
+            abort(403, 'No tienes permiso para actualizar este paciente.');
+        }
+        
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:50', Rule::unique('patients')->ignore($patient->id)],
             'name' => 'required|string|max:255',
@@ -153,6 +171,11 @@ class PatientsController extends Controller
      */
     public function destroy(Patient $patient)
     {
+        // Verify patient belongs to authenticated user
+        if ($patient->user_id !== auth()->id()) {
+            abort(403, 'No tienes permiso para eliminar este paciente.');
+        }
+        
         $appointmentsCount = $patient->appointments()->count();
         
         if ($appointmentsCount > 0) {

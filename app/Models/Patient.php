@@ -31,18 +31,6 @@ class Patient extends Model
     ];
 
     /**
-     * Boot method - Global scope for multi-user
-     */
-    protected static function booted(): void
-    {
-        static::addGlobalScope('user', function (Builder $query) {
-            if (auth()->check()) {
-                $query->where('user_id', auth()->id());
-            }
-        });
-    }
-
-    /**
      * Relationships
      */
     public function user(): BelongsTo
