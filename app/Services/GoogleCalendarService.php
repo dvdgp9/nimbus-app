@@ -70,14 +70,14 @@ class GoogleCalendarService
         return $out;
     }
 
-    public function syncAppointments(array $events): int
+    public function syncAppointments(array $events, ?int $userId = null): int
     {
         $count = 0;
         foreach ($events as $e) {
             $count++;
             
             // Try to find or create patient from attendee info
-            $patientId = $this->findOrCreatePatient($e);
+            $patientId = $this->findOrCreatePatient($e, $userId);
             
             // Extract message type from description (#MSG1, #MSG2, #MSG3, #MSG4)
             $messageType = $this->extractMessageType($e['description']);
@@ -108,7 +108,7 @@ class GoogleCalendarService
      * Find patient by code extracted from event title
      * The title should start with the patient code (e.g., "P123 - Consulta")
      */
-    private function findOrCreatePatient(array $event): ?int
+    private function findOrCreatePatient(array $event, ?int $userId = null): ?int
     {
         $title = $event['summary'] ?? '';
         
@@ -125,8 +125,14 @@ class GoogleCalendarService
             return null;
         }
         
-        // Find patient by code
-        $patient = DB::table('patients')->where('code', $code)->first();
+        // Find patient by code within the given user (if provided)
+        $query = DB::table('patients')->where('code', $code);
+
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        }
+
+        $patient = $query->first();
         
         if ($patient) {
             return $patient->id;

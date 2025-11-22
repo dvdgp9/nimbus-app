@@ -62,7 +62,7 @@ class EventsController extends Controller
 
         try {
             $events = $this->calendar->listUpcomingEvents($email, 336, $calendarIds ?: null);
-            $count = $this->calendar->syncAppointments($events);
+            $count = $this->calendar->syncAppointments($events, auth()->id());
             return back()->with('status', "Sincronizados {$count} eventos de las próximas 2 semanas");
         } catch (\Google\Service\Exception $e) {
             // Check if error is due to insufficient scopes
