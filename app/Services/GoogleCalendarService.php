@@ -70,12 +70,18 @@ class GoogleCalendarService
         return $out;
     }
 
-    public function syncAppointments(array $events, ?int $userId = null): int
+    public function syncAppointments(array $events, ?int $userId = null, ?array $calendarIds = null, int $hoursAhead = 336): int
     {
         $count = 0;
+        $googleIds = [];
         foreach ($events as $e) {
             $count++;
             
+            // Track event id for later cleanup
+            if (!empty($e['google_event_id'])) {
+                $googleIds[] = $e['google_event_id'];
+            }
+
             // Try to find or create patient from attendee info
             $patientId = $this->findOrCreatePatient($e, $userId);
             
@@ -101,6 +107,18 @@ class GoogleCalendarService
                 ]
             );
         }
+
+        // Cleanup: remove appointments that no longer exist in Google for these calendars
+        if (!empty($calendarIds) && !empty($googleIds)) {
+            DB::table('appointments')
+                ->whereIn('calendar_id', $calendarIds)
+                ->whereNotNull('google_event_id')
+                ->where('start_at', '>=', now())
+                ->where('start_at', '<=', now()->addHours($hoursAhead))
+                ->whereNotIn('google_event_id', $googleIds)
+                ->delete();
+        }
+
         return $count;
     }
     
