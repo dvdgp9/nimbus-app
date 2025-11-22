@@ -31,14 +31,6 @@ class ShortlinkController extends Controller
             ]);
         }
 
-        // Check if already used
-        if ($shortlink->used) {
-            return view('shortlinks.error', [
-                'message' => 'Enlace ya utilizado',
-                'detail' => 'Este enlace ya ha sido usado anteriormente.',
-            ]);
-        }
-
         // Get appointment
         $appointment = $shortlink->appointment;
 
