@@ -20,6 +20,7 @@ class Appointment extends Model
         'timezone',
         'hangout_link',
         'patient_id',
+        'message_type',
         'nimbus_status',
         'reminder_sent_at',
         'confirmed_at',

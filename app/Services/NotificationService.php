@@ -193,28 +193,19 @@ class NotificationService
     }
 
     /**
-     * Build WhatsApp message
+     * Build WhatsApp message based on message_type
      */
     protected function buildWhatsAppMessage(Appointment $appointment, array $data): string
     {
-        $message = sprintf(
-            "Hola *%s*! 👋\n\n" .
-            "Te recordamos tu próxima cita:\n\n" .
-            "📅 *Fecha:* %s\n" .
-            "🕐 *Hora:* %s\n" .
-            "📋 *Motivo:* %s\n",
-            $appointment->patient->name,
-            $appointment->formatted_date,
-            $appointment->formatted_time,
-            $appointment->summary
-        );
-
-        if ($appointment->hangout_link) {
-            $message .= "\n🔗 *Link de la sesión:* {$appointment->hangout_link}\n";
-        }
-
-        $message .= sprintf(
-            "\n✅ Confirmar: %s\n" .
+        $firstName = explode(' ', $appointment->patient->name)[0];
+        $messageType = $appointment->message_type ?? 2; // Default to type 2 (paid sessions)
+        
+        // Get the appropriate template
+        $template = $this->getWhatsAppTemplate($messageType, $firstName, $appointment);
+        
+        // Add action buttons
+        $template .= sprintf(
+            "\n\n✅ Confirmar: %s\n" .
             "❌ Cancelar: %s\n" .
             "📞 Reprogramar: %s",
             $data['confirmUrl'],
@@ -222,7 +213,41 @@ class NotificationService
             $data['rescheduleUrl']
         );
 
-        return $message;
+        return $template;
+    }
+
+    /**
+     * Get WhatsApp message template based on type
+     */
+    protected function getWhatsAppTemplate(int $type, string $firstName, Appointment $appointment): string
+    {
+        $day = $appointment->formatted_date;
+        $time = $appointment->formatted_time;
+        
+        return match($type) {
+            1 => "Hola, {$firstName} 😊\n" .
+                 "Te recuerdo nuestra sesión del {$day} a las {$time} (duración 55 minutos).\n" .
+                 "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
+                 "El pago debe realizarse al confirmar la sesión.\n" .
+                 "¡Gracias! 🤗",
+                 
+            3 => "Hola, {$firstName} 😊\n" .
+                 "Te recuerdo nuestra sesión del {$day} a las {$time} (duración 55 minutos).\n" .
+                 "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
+                 "Recordarte también que tu bono finalizó en la última sesión; el nuevo pago debe realizarse al confirmar.\n" .
+                 "¡Gracias! 🤗",
+                 
+            4 => "Hola, {$firstName} 😊\n" .
+                 "Te recuerdo nuestra primera sesión el {$day} a las {$time} (hora peninsular española), con una duración de 55 minutos.\n" .
+                 "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
+                 "Recordarte también que el pago debe realizarse con más de 24 horas de antelación, por Bizum a este número o por transferencia bancaria.\n" .
+                 "¡Gracias! 🤗",
+                 
+            default => "Hola, {$firstName} 😊\n" .
+                       "Te recuerdo nuestra sesión del {$day} a las {$time} (duración 55 minutos).\n" .
+                       "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
+                       "¡Gracias! 🤗",
+        };
     }
 
     /**

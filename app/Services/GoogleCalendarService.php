@@ -79,6 +79,9 @@ class GoogleCalendarService
             // Try to find or create patient from attendee info
             $patientId = $this->findOrCreatePatient($e);
             
+            // Extract message type from description (#MSG1, #MSG2, #MSG3, #MSG4)
+            $messageType = $this->extractMessageType($e['description']);
+            
             DB::table('appointments')->updateOrInsert(
                 ['google_event_id' => $e['google_event_id']],
                 [
@@ -90,6 +93,7 @@ class GoogleCalendarService
                     'timezone' => $e['timezone'],
                     'hangout_link' => $e['hangout_link'],
                     'patient_id' => $patientId,
+                    'message_type' => $messageType,
                     'last_synced_at' => now(),
                     'raw_payload' => json_encode($e['raw']),
                     'updated_at' => now(),
@@ -145,6 +149,25 @@ class GoogleCalendarService
         // Pattern: alphanumeric code followed by separator (-, :, space) or end of string
         if (preg_match('/^([A-Za-z0-9]+)(?:\s*[-:]\s*|\s+|$)/', $title, $matches)) {
             return strtoupper($matches[1]); // Normalize to uppercase
+        }
+        
+        return null;
+    }
+
+    /**
+     * Extract message type from event description
+     * Looks for #MSG1, #MSG2, #MSG3, or #MSG4 tags
+     * Returns integer 1-4 or null if not found
+     */
+    private function extractMessageType(?string $description): ?int
+    {
+        if (!$description) {
+            return null;
+        }
+        
+        // Search for #MSG followed by a number (1-4)
+        if (preg_match('/#MSG([1-4])\b/i', $description, $matches)) {
+            return (int) $matches[1];
         }
         
         return null;
