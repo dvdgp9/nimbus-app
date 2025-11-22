@@ -1,47 +1,69 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title }} - Nimbus</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #0b1020 0%, #1a2332 100%);
-        }
-    </style>
-</head>
-<body class="min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20">
-        <div class="text-center">
-            <div class="text-6xl mb-4">
-                @if(str_contains($title, 'confirmada'))
-                    ✅
-                @elseif(str_contains($title, 'cancelada'))
-                    ❌
-                @else
-                    ℹ️
-                @endif
-            </div>
-            
-            <h1 class="text-3xl font-bold text-white mb-4">{{ $title }}</h1>
-            <p class="text-gray-300 text-lg mb-6">{{ $message }}</p>
-            
-            @if(isset($appointment))
-            <div class="bg-white/5 rounded-lg p-4 mb-6 text-left">
-                <h2 class="text-white font-semibold mb-2">Detalles de la cita:</h2>
-                <p class="text-gray-300 text-sm">
-                    <strong>Título:</strong> {{ $appointment->summary }}<br>
-                    <strong>Fecha:</strong> {{ $appointment->formatted_date }}<br>
-                    <strong>Hora:</strong> {{ $appointment->formatted_time }}
-                </p>
-            </div>
+<x-app-layout>
+
+  <div class="page-container flex items-center justify-center min-h-[60vh]">
+    <div class="max-w-xl w-full">
+      <div class="event-card border-2 border-white/10">
+        <div class="flex items-start gap-4 mb-4">
+          @php
+            $isConfirmed = str_contains($title, 'confirmada');
+            $isCancelled = str_contains($title, 'cancelada');
+          @endphp
+
+          <div class="shrink-0 rounded-full bg-emerald-500/10 border border-emerald-400/40 p-3 {{ $isCancelled ? 'bg-red-500/10 border-red-400/40' : '' }}">
+            @if($isConfirmed)
+              {{-- Icono estilo iconoir: check circle --}}
+              <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" stroke-width="1.7" />
+                <path stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M9 12.5l2 2.5 4-5" />
+              </svg>
+            @elseif($isCancelled)
+              {{-- Icono estilo iconoir: cancel --}}
+              <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" stroke-width="1.7" />
+                <path stroke-width="1.7" stroke-linecap="round" d="M9 9l6 6M15 9l-6 6" />
+              </svg>
+            @else
+              {{-- Icono info --}}
+              <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" stroke-width="1.7" />
+                <path stroke-width="1.7" stroke-linecap="round" d="M12 8v.01M12 11v5" />
+              </svg>
             @endif
-            
-            <a href="{{ url('/') }}" class="inline-block bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition">
-                Volver al inicio
-            </a>
+          </div>
+
+          <div class="flex-1">
+            <h1 class="text-2xl md:text-3xl font-semibold text-white mb-2">{{ $title }}</h1>
+
+            <p class="text-white/70 mb-4">
+              @if($isConfirmed)
+                Nos vemos en la cita. Gracias por confirmar tu asistencia.
+              @elseif($isCancelled)
+                Tu cita ha sido cancelada. Espero que nos veamos pronto.
+              @else
+                {{ $message }}
+              @endif
+            </p>
+
+            @if(isset($appointment))
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-white/80">
+                <div>
+                  <div class="text-xs uppercase tracking-wide text-white/40 mb-1">Título</div>
+                  <div>{{ $appointment->summary }}</div>
+                </div>
+                <div>
+                  <div class="text-xs uppercase tracking-wide text-white/40 mb-1">Fecha</div>
+                  <div>{{ $appointment->formatted_date }}</div>
+                </div>
+                <div>
+                  <div class="text-xs uppercase tracking-wide text-white/40 mb-1">Hora</div>
+                  <div>{{ $appointment->formatted_time }} {{ $appointment->timezone ? "({$appointment->timezone})" : '' }}</div>
+                </div>
+              </div>
+            @endif
+          </div>
         </div>
+      </div>
     </div>
-</body>
-</html>
+  </div>
+
+</x-app-layout>

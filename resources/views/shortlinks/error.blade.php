@@ -1,35 +1,31 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error - Nimbus</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #0b1020 0%, #1a2332 100%);
-        }
-    </style>
-</head>
-<body class="min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20">
-        <div class="text-center">
-            <div class="text-6xl mb-4">⚠️</div>
-            
-            <h1 class="text-3xl font-bold text-white mb-4">{{ $message }}</h1>
-            <p class="text-gray-300 text-lg mb-6">{{ $detail }}</p>
-            
-            <div class="space-y-3">
-                <a href="{{ url('/') }}" class="block bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition">
-                    Volver al inicio
-                </a>
-                
-                <p class="text-gray-400 text-sm">
-                    ¿Necesitas ayuda? Contacta con nosotros por 
-                    <a href="https://wa.me/{{ config('services.whatsapp.professional_phone') }}" class="text-cyan-400 hover:underline">WhatsApp</a>
-                </p>
-            </div>
+<x-app-layout>
+
+  <div class="page-container flex items-center justify-center min-h-[60vh]">
+    <div class="max-w-xl w-full">
+      <div class="event-card border-2 border-red-500/40">
+        <div class="flex items-start gap-4">
+          <div class="shrink-0 rounded-full bg-red-500/10 border border-red-400/50 p-3">
+            {{-- Icono estilo advertencia --}}
+            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M12 8v5" />
+              <circle cx="12" cy="16" r="0.9" fill="currentColor" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M12 3 3.5 19h17z" />
+            </svg>
+          </div>
+
+          <div class="flex-1">
+            <h1 class="text-2xl md:text-3xl font-semibold text-white mb-2">{{ $message }}</h1>
+            <p class="text-white/70 mb-4">{{ $detail }}</p>
+
+            <p class="text-sm text-white/60 mt-4">
+              ¿Necesitas ayuda? Puedes escribir por
+              <a href="https://wa.me/{{ config('services.whatsapp.professional_phone') }}" class="text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline">WhatsApp</a>
+              para revisar tu cita.
+            </p>
+          </div>
         </div>
+      </div>
     </div>
-</body>
-</html>
+  </div>
+
+</x-app-layout>
