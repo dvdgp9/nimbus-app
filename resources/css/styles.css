@@ -54,6 +54,14 @@ nav a { position: relative; }
 nav a::after { content: ""; position: absolute; left: 0; bottom: -6px; height: 2px; width: 0; background: linear-gradient(90deg, var(--nimbus-accent), var(--nimbus-primary)); transition: width .2s; }
 nav a:hover::after { width: 100%; }
 
+/* Bottom navigation (mobile) should not use the header underline effect */
+.bottom-nav a {
+  position: static;
+}
+.bottom-nav a::after {
+  display: none;
+}
+
 /* Glass utility */
 @layer utilities {
   .glass {

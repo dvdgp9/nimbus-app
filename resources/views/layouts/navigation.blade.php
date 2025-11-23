@@ -75,7 +75,7 @@
     <div x-data="{ profileOpen: false }" class="lg:hidden">
         <!-- Bottom Nav Bar -->
         <div class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 safe-area-inset z-50">
-            <nav class="max-w-md mx-auto px-4">
+            <nav class="max-w-md mx-auto px-4 bottom-nav">
                 <ul class="flex items-center justify-around h-16">
                     <!-- Home -->
                     <li class="flex-1">
