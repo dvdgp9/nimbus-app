@@ -58,21 +58,37 @@ class TwilioService
 
     /**
      * Send WhatsApp message
+     *
+     * If $payload is a string, it will be sent as a freeform body (only valid
+     * inside the WhatsApp 24h session window).
+     * If $payload is an array with 'contentSid' and optional 'contentVariables',
+     * it will be sent as a WhatsApp Content Template, which is required
+     * outside the 24h window.
      */
-    public function sendWhatsApp(string $to, string $message): string
+    public function sendWhatsApp(string $to, string|array $payload): string
     {
         try {
             // Twilio requires whatsapp: prefix
             $from = 'whatsapp:' . $this->whatsappNumber;
             $to = 'whatsapp:' . $to;
 
-            $response = $this->client->messages->create(
-                $to,
-                [
-                    'from' => $from,
-                    'body' => $message,
-                ]
-            );
+            $params = [
+                'from' => $from,
+            ];
+
+            if (is_array($payload) && isset($payload['contentSid'])) {
+                // Send as Content Template
+                $params['contentSid'] = $payload['contentSid'];
+
+                if (!empty($payload['contentVariables'])) {
+                    $params['contentVariables'] = json_encode($payload['contentVariables']);
+                }
+            } else {
+                // Fallback: freeform body (string)
+                $params['body'] = (string) $payload;
+            }
+
+            $response = $this->client->messages->create($to, $params);
 
             Log::info("WhatsApp sent via Twilio", [
                 'sid' => $response->sid,

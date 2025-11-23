@@ -139,7 +139,25 @@ class NotificationService
             return false;
         }
 
-        $message = $this->buildWhatsAppMessage($appointment, $data);
+        // Elegir plantilla de WhatsApp según message_type del appointment
+        $messageType = $appointment->message_type ?? 1;
+        $templates   = config('services.twilio.whatsapp_templates', []);
+        $templateSid = $templates[$messageType] ?? null;
+
+        if (!$templateSid) {
+            Log::error("No WhatsApp template configured for message_type {$messageType}");
+            return false;
+        }
+
+        // Build template variables for WhatsApp Content Template
+        $firstName = explode(' ', $patient->name)[0];
+
+        $contentVariables = [
+            // Estos índices deben coincidir con los placeholders {{1}}, {{2}}, {{3}} de la plantilla
+            '1' => $firstName,
+            '2' => $appointment->formatted_date,
+            '3' => $appointment->formatted_time,
+        ];
 
         $communication = Communication::create([
             'appointment_id' => $appointment->id,
@@ -147,14 +165,20 @@ class NotificationService
             'channel' => 'whatsapp',
             'type' => 'reminder',
             'recipient' => $patient->phone,
-            'message_body' => $message,
+            'message_body' => json_encode([
+                'template' => $templateSid,
+                'variables' => $contentVariables,
+            ]),
             'consent_verified' => true,
             'status' => 'pending',
         ]);
 
         try {
             $twilioService = app(TwilioService::class);
-            $sid = $twilioService->sendWhatsApp($patient->phone, $message);
+            $sid = $twilioService->sendWhatsApp($patient->phone, [
+                'contentSid' => $templateSid,
+                'contentVariables' => $contentVariables,
+            ]);
             
             $communication->markAsSent($sid);
             $appointment->markReminderSent();
