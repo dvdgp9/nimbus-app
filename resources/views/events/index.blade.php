@@ -167,10 +167,6 @@
               </dd>
             </div>
             <div>
-              <dt>Zona horaria</dt>
-              <dd>{{ $apt->timezone ?? '—' }}</dd>
-            </div>
-            <div>
               <dt>Recordatorio</dt>
               <dd>{{ $apt->reminder_sent_at ? $apt->reminder_sent_at->diffForHumans() : '—' }}</dd>
             </div>
