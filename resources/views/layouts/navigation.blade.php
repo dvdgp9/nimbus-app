@@ -63,10 +63,154 @@
             </div>
             @endauth
 
-            <!-- Hamburger - Hidden on mobile (using bottom nav instead) -->
-            <div class="-me-2 flex items-center lg:hidden">
-                <!-- Bottom nav replaces hamburger on mobile -->
+            <!-- Hamburger -->
+            <div class="-me-2 flex items-center sm:hidden">
+                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-white/70 hover:text-white hover:bg-white/10 focus:outline-none focus:bg-white/10 transition duration-150 ease-in-out">
+                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
+
+    <!-- Responsive Navigation Menu (hamburger panel) -->
+    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
+        <div class="pt-2 pb-3 space-y-1">
+            <x-responsive-nav-link :href="route('home')" :active="request()->routeIs('home')">
+                Inicio
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('patients.index')" :active="request()->routeIs('patients.*')">
+                Pacientes
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('events.index')" :active="request()->routeIs('events.*')">
+                Eventos
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('calendars.index')" :active="request()->routeIs('calendars.*')">
+                Calendarios
+            </x-responsive-nav-link>
+        </div>
+
+        <!-- Responsive Settings Options -->
+        @auth
+        <div class="pt-4 pb-1 border-t border-white/10 mb-16">
+            <div class="px-4">
+                <div class="font-medium text-base text-white">{{ Auth::user()->name }}</div>
+                <div class="font-medium text-sm text-white/70">{{ Auth::user()->email }}</div>
+            </div>
+
+            <div class="mt-3 space-y-1">
+                <x-responsive-nav-link :href="route('profile.edit')">
+                    {{ __('Profile') }}
+                </x-responsive-nav-link>
+
+                <!-- Authentication -->
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+
+                    <x-responsive-nav-link :href="route('logout')"
+                            onclick="event.preventDefault();
+                                        this.closest('form').submit();">
+                        {{ __('Log Out') }}
+                    </x-responsive-nav-link>
+                </form>
+            </div>
+        </div>
+        @endauth
+    </div>
+
+    @auth
+    <!-- Mobile Bottom Navigation -->
+    <div class="sm:hidden fixed inset-x-0 bottom-0 z-40 bg-slate-950/95 border-t border-white/10 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-2">
+            <div class="flex justify-between">
+                @php
+                    $navItems = [
+                        [
+                            'label' => 'Inicio',
+                            'route' => 'home',
+                            'active' => request()->routeIs('home'),
+                            'icon' => 'home',
+                        ],
+                        [
+                            'label' => 'Pacientes',
+                            'route' => 'patients.index',
+                            'active' => request()->routeIs('patients.*'),
+                            'icon' => 'users',
+                        ],
+                        [
+                            'label' => 'Eventos',
+                            'route' => 'events.index',
+                            'active' => request()->routeIs('events.*'),
+                            'icon' => 'calendar',
+                        ],
+                        [
+                            'label' => 'Calendarios',
+                            'route' => 'calendars.index',
+                            'active' => request()->routeIs('calendars.*'),
+                            'icon' => 'layers',
+                        ],
+                        [
+                            'label' => 'Perfil',
+                            'route' => 'profile.edit',
+                            'active' => request()->routeIs('profile.*'),
+                            'icon' => 'user',
+                        ],
+                    ];
+                @endphp
+
+                @foreach($navItems as $item)
+                    @php
+                        $isActive = $item['active'];
+                    @endphp
+                    <a href="{{ route($item['route']) }}" class="flex-1 flex flex-col items-center justify-center py-2 text-xs {{ $isActive ? 'text-cyan-300' : 'text-white/60' }}">
+                        <span class="mb-1">
+                            @switch($item['icon'])
+                                @case('home')
+                                    {{-- Iconoir-style home --}}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                                        <path d="M4 11.5L12 4l8 7.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        <path d="M6 10.5V20h12v-9.5" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    @break
+                                @case('users')
+                                    {{-- Iconoir-style users --}}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                                        <circle cx="9" cy="9" r="3" />
+                                        <path d="M4 20a5 5 0 0110 0" stroke-linecap="round" />
+                                        <path d="M17 11a2.5 2.5 0 10-2.4-3.2" stroke-linecap="round" />
+                                        <path d="M15 20a4 4 0 017 0" stroke-linecap="round" />
+                                    </svg>
+                                    @break
+                                @case('calendar')
+                                    {{-- Iconoir-style calendar --}}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                                        <rect x="4" y="5" width="16" height="15" rx="2" />
+                                        <path d="M4 10h16M9 3v4M15 3v4" stroke-linecap="round" />
+                                    </svg>
+                                    @break
+                                @case('layers')
+                                    {{-- Iconoir-style layers --}}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                                        <path d="M4 9l8-4 8 4-8 4-8-4z" stroke-linejoin="round" />
+                                        <path d="M4 15l8 4 8-4" stroke-linejoin="round" />
+                                    </svg>
+                                    @break
+                                @case('user')
+                                    {{-- Iconoir-style user --}}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="9" r="3.2" />
+                                        <path d="M6 20a6 6 0 0112 0" stroke-linecap="round" />
+                                    </svg>
+                                    @break
+                            @endswitch
+                        </span>
+                        <span class="text-[11px] tracking-wide">{{ $item['label'] }}</span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endauth
 </nav>
