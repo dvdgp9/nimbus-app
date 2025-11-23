@@ -111,19 +111,24 @@
       text-align:center;
     }
     .btn { 
-      display:inline-block;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
       padding:14px 28px;
       border-radius:8px;
       text-decoration:none;
       font-weight:600;
       font-size:14px;
       margin:8px 4px;
-      transition:opacity 0.2s;
+      transition:all 0.2s;
     }
-    .btn:hover { opacity:0.9; }
+    .btn:hover { opacity:0.9; transform:translateY(-1px); }
+    .btn-icon { width:18px; height:18px; flex-shrink:0; }
     .btn-confirm {
       background:linear-gradient(135deg,#10b981,#059669);
       color:#fff;
+      box-shadow:0 4px 12px rgba(16,185,129,0.3);
     }
     .btn-cancel {
       background:rgba(255,255,255,0.1);
@@ -133,6 +138,7 @@
     .btn-reschedule {
       background:linear-gradient(135deg,#f59e0b,#d97706);
       color:#fff;
+      box-shadow:0 4px 12px rgba(245,158,11,0.3);
     }
     
     /* Divider */
@@ -196,7 +202,10 @@
           <h2>{{ $appointment->summary }}</h2>
           
           <div class="detail">
-            <span class="detail-icon">📅</span>
+            <svg class="detail-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <rect x="3" y="6" width="18" height="15" rx="2" />
+              <path d="M3 10h18M8 3v6M16 3v6" stroke-linecap="round" />
+            </svg>
             <div>
               <strong>Fecha:</strong><br>
               {{ $appointment->formatted_date }}
@@ -204,7 +213,10 @@
           </div>
           
           <div class="detail">
-            <span class="detail-icon">🕐</span>
+            <svg class="detail-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 6v6l4 2" stroke-linecap="round" />
+            </svg>
             <div>
               <strong>Hora:</strong><br>
               {{ $appointment->formatted_time }} ({{ $appointment->timezone }})
@@ -213,17 +225,21 @@
           
           @if($appointment->hangout_link)
           <div class="detail">
-            <span class="detail-icon">🔗</span>
+            <svg class="detail-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path d="M8 11h8M8 15h5M16 19H8a2 2 0 01-2-2V7a2 2 0 012-2h8l4 4v8a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <div>
               <strong>Enlace de la sesión:</strong><br>
-              <a href="{{ $appointment->hangout_link }}" style="color:#00d4ff;text-decoration:none;">{{ $appointment->hangout_link }}</a>
+              <a href="{{ $appointment->hangout_link }}" style="color:#00d4ff;text-decoration:none;">Unirse a la videollamada</a>
             </div>
           </div>
           @endif
           
           @if($appointment->description)
           <div class="detail">
-            <span class="detail-icon">📋</span>
+            <svg class="detail-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-linecap="round"/>
+            </svg>
             <div>
               <strong>Notas:</strong><br>
               {{ $appointment->description }}
@@ -235,16 +251,39 @@
         <p style="margin:24px 0 8px 0;color:rgba(255,255,255,0.9);font-weight:600;">¿Qué deseas hacer?</p>
         
         <div class="actions">
-          <a href="{{ $confirmUrl }}" class="btn btn-confirm">✅ Confirmar Asistencia</a>
-          <a href="{{ $rescheduleUrl }}" class="btn btn-reschedule">📞 Reprogramar por WhatsApp</a>
-          <a href="{{ $cancelUrl }}" class="btn btn-cancel">❌ Cancelar Cita</a>
+          <a href="{{ $confirmUrl }}" class="btn btn-confirm">
+            <svg class="btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9 12.5l2 2.5 4-5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Confirmar Asistencia
+          </a>
+          <a href="{{ $rescheduleUrl }}" class="btn btn-reschedule">
+            <svg class="btn-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path d="M3 10h10a8 8 0 018 8v0M3 10l6 6m-6-6l6-6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Reprogramar por WhatsApp
+          </a>
+          <a href="{{ $cancelUrl }}" class="btn btn-cancel">
+            <svg class="btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9 9l6 6M15 9l-6 6" stroke-linecap="round" />
+            </svg>
+            Cancelar Cita
+          </a>
         </div>
         
         <hr class="hr">
         
-        <div class="info-box">
-          <strong style="color:rgba(255,255,255,0.9);">💡 Recuerda</strong><br>
-          Por favor, confirma tu asistencia para mantener tu espacio reservado. Si necesitas cancelar, hazlo con al menos 24 horas de antelación.
+        <div class="info-box" style="display:flex;gap:12px;">
+          <svg style="width:20px;height:20px;flex-shrink:0;margin-top:2px;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v.01M12 11v5" stroke-linecap="round" />
+          </svg>
+          <div>
+            <strong style="color:rgba(255,255,255,0.9);">Recuerda</strong><br>
+            Por favor, confirma tu asistencia para mantener tu espacio reservado. Si necesitas cancelar, hazlo con al menos 24 horas de antelación.
+          </div>
         </div>
       </div>
       
