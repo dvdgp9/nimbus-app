@@ -252,25 +252,17 @@
         <p style="margin:24px 0 8px 0;color:rgba(255,255,255,0.9);font-weight:600;">¿Qué deseas hacer?</p>
         
         <div class="actions">
-          <a href="{{ $confirmUrl }}" class="btn btn-confirm">
-            <svg class="btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M9 12.5l2 2.5 4-5" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            Confirmar Asistencia
+          <a href="{{ $confirmUrl }}" class="btn btn-confirm" style="color:#ffffff !important; text-decoration:none;">
+            ✅
+            <span>Confirmar Asistencia</span>
           </a>
-          <a href="{{ $rescheduleUrl }}" class="btn btn-reschedule">
-            <svg class="btn-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-              <path d="M3 10h10a8 8 0 018 8v0M3 10l6 6m-6-6l6-6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            Reprogramar por WhatsApp
+          <a href="{{ $rescheduleUrl }}" class="btn btn-reschedule" style="color:#ffffff !important; text-decoration:none;">
+            📞
+            <span>Reprogramar por WhatsApp</span>
           </a>
-          <a href="{{ $cancelUrl }}" class="btn btn-cancel">
-            <svg class="btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M9 9l6 6M15 9l-6 6" stroke-linecap="round" />
-            </svg>
-            Cancelar Cita
+          <a href="{{ $cancelUrl }}" class="btn btn-cancel" style="color:#ffffff !important; text-decoration:none;">
+            ❌
+            <span>Cancelar Cita</span>
           </a>
         </div>
         
