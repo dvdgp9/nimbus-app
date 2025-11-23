@@ -254,3 +254,10 @@ nav a:hover::after { width: 100%; }
 .empty-state p {
   @apply text-sm text-white/50;
 }
+
+/* Safe area inset support for bottom navigation (notch/island support) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-inset {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
