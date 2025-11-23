@@ -122,9 +122,9 @@
 
     @auth
     <!-- Mobile Bottom Navigation -->
-    <div class="sm:hidden fixed inset-x-0 bottom-0 z-40 bg-slate-950/95 border-t border-white/10 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-2">
-            <div class="flex justify-between">
+    <div class="sm:hidden" style="position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(15,23,42,0.96);border-top:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(12px);">
+        <div class="max-w-7xl mx-auto" style="padding:4px 8px;">
+            <div style="display:flex;justify-content:space-between;">
                 @php
                     $navItems = [
                         [
@@ -161,15 +161,13 @@
                 @endphp
 
                 @foreach($navItems as $item)
-                    @php
-                        $isActive = $item['active'];
-                    @endphp
-                    <a href="{{ route($item['route']) }}" class="flex-1 flex flex-col items-center justify-center py-2 text-xs {{ $isActive ? 'text-cyan-300' : 'text-white/60' }}">
-                        <span class="mb-1">
+                    @php $isActive = $item['active']; @endphp
+                    <a href="{{ route($item['route']) }}" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0;font-size:11px;text-decoration:none;{{ $isActive ? 'color:#67e8f9;' : 'color:rgba(255,255,255,0.7);' }}">
+                        <span style="margin-bottom:2px;display:inline-flex;align-items:center;justify-content:center;">
                             @switch($item['icon'])
                                 @case('home')
                                     {{-- Iconoir-style home --}}
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
                                         <path d="M4 11.5L12 4l8 7.5" stroke-linecap="round" stroke-linejoin="round" />
                                         <path d="M6 10.5V20h12v-9.5" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
@@ -206,7 +204,7 @@
                                     @break
                             @endswitch
                         </span>
-                        <span class="text-[11px] tracking-wide">{{ $item['label'] }}</span>
+                        <span style="letter-spacing:0.04em;">{{ $item['label'] }}</span>
                     </a>
                 @endforeach
             </div>
