@@ -9,7 +9,7 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0b1020;
             min-height: 100vh;
         }
         .email-wrapper {
@@ -24,15 +24,44 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
         .email-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px 30px;
+            background: linear-gradient(135deg, #00d4ff, #5b7cfa);
+            padding: 32px 28px;
             text-align: center;
         }
         .email-header h1 {
             color: white;
-            margin: 0;
-            font-size: 28px;
+            margin: 16px 0 0 0;
+            font-size: 22px;
             font-weight: 600;
+        }
+        .brand {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: #fff;
+        }
+        .cloud-icon {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            background: #fff;
+            border-radius: 8px;
+            position: relative;
+        }
+        .cloud-icon::before {
+            content: '☁';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #00d4ff;
         }
         .status-icon {
             width: 80px;
@@ -173,6 +202,10 @@
         <div class="email-container">
             <!-- Header -->
             <div class="email-header">
+                <div class="brand">
+                    <span class="cloud-icon"></span>
+                    <span>Nimbus</span>
+                </div>
                 <div class="status-icon">
                     @if($action === 'confirmed')
                         ✅
@@ -180,7 +213,7 @@
                         ❌
                     @endif
                 </div>
-                <h1>Actualización de Cita</h1>
+                <h1>Actualización de cita</h1>
             </div>
 
             <!-- Body -->
@@ -269,8 +302,8 @@
 
             <!-- Footer -->
             <div class="footer">
-                <p>Esta es una notificación automática de <strong>Nimbus</strong></p>
-                <p>Tu sistema de gestión de citas</p>
+                <p>Este correo fue enviado automáticamente por <strong>Nimbus</strong>.<br>Tu sistema de gestión de citas.</p>
+                <p style="font-size: 12px; color: #a0aec0; margin-top: 8px;">© {{ date('Y') }} Nimbus. Todos los derechos reservados.</p>
             </div>
         </div>
     </div>
