@@ -122,6 +122,7 @@
       font-size:14px;
       margin:8px 4px;
       transition:all 0.2s;
+      color:#fff;
     }
     .btn:hover { opacity:0.9; transform:translateY(-1px); }
     .btn-icon { width:18px; height:18px; flex-shrink:0; }
@@ -132,7 +133,7 @@
     }
     .btn-cancel {
       background:rgba(255,255,255,0.1);
-      color:rgba(255,255,255,0.9);
+      color:#fff;
       border:1px solid rgba(255,255,255,0.2);
     }
     .btn-reschedule {
