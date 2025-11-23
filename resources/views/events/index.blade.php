@@ -73,8 +73,18 @@
           $patientCreateUrl = $prefillParams
             ? route('patients.create', $prefillParams)
             : route('patients.create');
+
+          // Border color based on appointment status
+          $status = $apt->nimbus_status;
+          $borderClass = match ($status) {
+              'confirmed' => 'border-emerald-400/60',   // verde
+              'cancelled' => 'border-red-400/60',       // rojo
+              'reminder_sent' => 'border-amber-400/60', // amarillo (recordatorio enviado)
+              'pending' => 'border-slate-300/40',       // gris claro (pendiente)
+              default => 'border-slate-500/40',         // neutro para otros estados
+          };
         @endphp
-        <div class="event-card {{ $patientBelongsToUser ? 'border-2 border-green-500/50' : 'border-2 border-yellow-500/50' }}">
+        <div class="event-card border-2 {{ $borderClass }}">
           {{-- Patient Status Badge --}}
           @if (!$apt->patient)
             <div class="mb-3 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
