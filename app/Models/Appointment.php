@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Mail\AppointmentStatusChanged;
 
 class Appointment extends Model
 {
@@ -106,6 +109,9 @@ class Appointment extends Model
             'nimbus_status' => 'confirmed',
             'confirmed_at' => now(),
         ]);
+
+        // Notify professional
+        $this->notifyProfessional('confirmed');
     }
 
     public function cancel(): void
@@ -114,6 +120,9 @@ class Appointment extends Model
             'nimbus_status' => 'cancelled',
             'cancelled_at' => now(),
         ]);
+
+        // Notify professional
+        $this->notifyProfessional('cancelled');
     }
 
     public function isInNext24Hours(): bool
@@ -161,5 +170,26 @@ class Appointment extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Notify professional about patient action
+     */
+    protected function notifyProfessional(string $action): void
+    {
+        if (!$this->patient || !$this->patient->user) {
+            Log::warning("Cannot notify professional: appointment {$this->id} has no patient or user");
+            return;
+        }
+
+        try {
+            Mail::to($this->patient->user->email)->send(
+                new AppointmentStatusChanged($this, $this->patient, $action)
+            );
+            
+            Log::info("Professional notified: appointment {$this->id} was {$action} by patient {$this->patient->id}");
+        } catch (\Exception $e) {
+            Log::error("Failed to notify professional: " . $e->getMessage());
+        }
     }
 }
