@@ -34,14 +34,14 @@ class EventsController extends Controller
             ->pluck('calendar_id')
             ->all();
 
-        // Get ALL appointments from user's calendars (next 2 weeks)
+        // Get ALL appointments from user's calendars (next 30 days)
         // Don't filter by patient ownership - show all events
         $appointments = Appointment::with('patient')
             ->when($calendarIds, function ($query) use ($calendarIds) {
                 $query->whereIn('calendar_id', $calendarIds);
             })
             ->where('start_at', '>=', now())
-            ->where('start_at', '<=', now()->addDays(14))
+            ->where('start_at', '<=', now()->addDays(30))
             ->orderBy('start_at', 'asc')
             ->get();
 
@@ -65,10 +65,10 @@ class EventsController extends Controller
             ->all();
 
         try {
-            $hoursAhead = 336; // 2 semanas
+            $hoursAhead = 720; // 30 días
             $events = $this->calendar->listUpcomingEvents($email, $hoursAhead, $calendarIds ?: null, auth()->id());
             $count = $this->calendar->syncAppointments($events, auth()->id(), $calendarIds ?: null, $hoursAhead);
-            return back()->with('status', "Sincronizados {$count} eventos de las próximas 2 semanas");
+            return back()->with('status', "Sincronizados {$count} eventos de los próximos 30 días");
         } catch (\Google\Service\Exception $e) {
             // Check if error is due to insufficient scopes
             $error = json_decode($e->getMessage(), true);
