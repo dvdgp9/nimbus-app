@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class GoogleClientFactory
 {
-    public static function make(?string $accountEmail = null): Client
+    public static function make(?string $accountEmail = null, ?int $userId = null): Client
     {
         $client = new Client();
         $client->setClientId(config('services.google.client_id'));
@@ -30,7 +30,11 @@ class GoogleClientFactory
         $client->setPrompt('consent');
 
         if ($accountEmail) {
-            $row = DB::table('google_tokens')->where('account_email', $accountEmail)->first();
+            $query = DB::table('google_tokens')->where('account_email', $accountEmail);
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
+            $row = $query->first();
             if ($row && $row->access_token) {
                 $client->setAccessToken(json_decode($row->access_token, true) ?: $row->access_token);
                 if ($client->isAccessTokenExpired() && $row->refresh_token) {

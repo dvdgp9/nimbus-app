@@ -66,7 +66,7 @@ class EventsController extends Controller
 
         try {
             $hoursAhead = 336; // 2 semanas
-            $events = $this->calendar->listUpcomingEvents($email, $hoursAhead, $calendarIds ?: null);
+            $events = $this->calendar->listUpcomingEvents($email, $hoursAhead, $calendarIds ?: null, auth()->id());
             $count = $this->calendar->syncAppointments($events, auth()->id(), $calendarIds ?: null, $hoursAhead);
             return back()->with('status', "Sincronizados {$count} eventos de las próximas 2 semanas");
         } catch (\Google\Service\Exception $e) {

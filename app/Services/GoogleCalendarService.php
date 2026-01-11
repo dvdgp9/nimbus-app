@@ -8,9 +8,9 @@ use Illuminate\Support\Carbon;
 
 class GoogleCalendarService
 {
-    public function listCalendars(?string $accountEmail): array
+    public function listCalendars(?string $accountEmail, ?int $userId = null): array
     {
-        $client = GoogleClientFactory::make($accountEmail);
+        $client = GoogleClientFactory::make($accountEmail, $userId);
         $service = new GoogleCalendar($client);
 
         $calList = $service->calendarList->listCalendarList([ 'minAccessRole' => 'reader', 'maxResults' => 250 ]);
@@ -26,9 +26,9 @@ class GoogleCalendarService
         return $out;
     }
 
-    public function listUpcomingEvents(?string $accountEmail, int $hoursAhead = 48, ?array $calendarIds = null): array
+    public function listUpcomingEvents(?string $accountEmail, int $hoursAhead = 48, ?array $calendarIds = null, ?int $userId = null): array
     {
-        $client = GoogleClientFactory::make($accountEmail);
+        $client = GoogleClientFactory::make($accountEmail, $userId);
         $service = new GoogleCalendar($client);
 
         $timeMin = now()->toRfc3339String();

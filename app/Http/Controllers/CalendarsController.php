@@ -25,7 +25,7 @@ class CalendarsController extends Controller
         }
 
         try {
-            $all = $this->calendar->listCalendars($email);
+            $all = $this->calendar->listCalendars($email, auth()->id());
         } catch (\Google\Service\Exception $e) {
             // Check if error is due to insufficient scopes
             $error = json_decode($e->getMessage(), true);
