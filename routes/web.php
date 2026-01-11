@@ -18,6 +18,15 @@ Route::get('/healthz', function () {
 // Shortlink actions (public for patients)
 Route::get('/link/{token}', [ShortlinkController::class, 'handle'])->name('shortlink.handle');
 
+// Legal pages
+Route::get('/privacy-policy', function () {
+    return view('legal.privacy');
+})->name('legal.privacy');
+
+Route::get('/terms-of-service', function () {
+    return view('legal.tos');
+})->name('legal.tos');
+
 // Protected routes (require authentication)
 Route::middleware(['auth'])->group(function () {
     Route::get('/', HomeController::class)->name('home');

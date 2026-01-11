@@ -17,7 +17,7 @@ Para que los recordatorios se envíen automáticamente cada 30 minutos, necesita
 
 **Comando:**
 ```bash
-/usr/local/bin/php /home/USUARIO/nimbus-app/artisan schedule:run >> /dev/null 2>&1
+/usr/local/bin/php /home/umilpdfe/nimbus-app/artisan schedule:run >> /dev/null 2>&1
 ```
 
 Sustituye:
