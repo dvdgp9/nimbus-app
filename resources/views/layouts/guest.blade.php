@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Nimbus') }}</title>
+        <title>{{ config('app.name', 'Nimbus') }} - Gestión de Citas</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -13,82 +13,70 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-        
-        <style>
-            .nimbus-gradient {
-                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            }
-            .glass-panel {
-                background: rgba(255, 255, 255, 0.03);
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.05);
-            }
-            .nimbus-accent {
-                color: #67e8f9;
-            }
-        </style>
     </head>
-    <body class="font-sans antialiased text-white">
-        <div class="min-h-screen flex nimbus-gradient">
-            <!-- Left Side: Branding & Info (Hidden on Mobile) -->
-            <div class="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 lg:px-24 bg-black/10">
-                <div class="max-w-md">
-                    <div class="flex items-center gap-3 mb-8">
-                        <div class="w-12 h-12 bg-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                            <svg class="w-8 h-8 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                            </svg>
-                        </div>
-                        <span class="text-3xl font-bold tracking-tight">Nimbus</span>
-                    </div>
-                    
-                    <h1 class="text-5xl font-extrabold leading-tight mb-6">
-                        Gestión inteligente para <span class="nimbus-accent">profesionales</span>.
+    <body class="font-sans antialiased">
+        <div class="min-h-screen nimbus-bg flex">
+            <!-- Left side - Welcome Section (hidden on mobile) -->
+            <div class="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 xl:px-20 text-white">
+                <div class="max-w-xl">
+                    <h1 class="text-5xl font-bold mb-6" style="text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+                        Bienvenido a Nimbus
                     </h1>
-                    <p class="text-xl text-slate-400 mb-10">
-                        Sincroniza tus calendarios, gestiona tus citas y automatiza recordatorios en una sola plataforma diseñada para la eficiencia.
+                    <p class="text-xl mb-8 leading-relaxed" style="text-shadow: 0 1px 5px rgba(0,0,0,0.2);">
+                        Tu plataforma inteligente para la gestión de citas médicas y recordatorios automáticos.
                     </p>
-                    
-                    <div class="space-y-4 text-slate-300">
-                        <div class="flex items-center gap-3">
-                            <svg class="w-5 h-5 nimbus-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            <span>Sincronización con Google Calendar</span>
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-6 h-6 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold text-lg">Sincronización con Google Calendar</h3>
+                                <p class="text-cyan-100">Conecta tus calendarios y gestiona todo desde un solo lugar</p>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <svg class="w-5 h-5 nimbus-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            <span>Recordatorios automáticos</span>
+                        <div class="flex items-start gap-3">
+                            <svg class="w-6 h-6 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold text-lg">Recordatorios automáticos</h3>
+                                <p class="text-cyan-100">Envía notificaciones a tus pacientes vía WhatsApp</p>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <svg class="w-5 h-5 nimbus-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            <span>Gestión de pacientes centralizada</span>
+                        <div class="flex items-start gap-3">
+                            <svg class="w-6 h-6 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold text-lg">Gestión de pacientes</h3>
+                                <p class="text-cyan-100">Organiza la información de tus pacientes de forma segura</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Side: Auth Form -->
-            <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
-                <!-- Decorative Circles -->
-                <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
-                <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
-
-                <div class="w-full max-w-[440px] z-10">
-                    <div class="lg:hidden flex items-center justify-center gap-2 mb-8">
-                        <div class="w-8 h-8 bg-cyan-400 rounded-lg flex items-center justify-center">
-                            <svg class="w-5 h-5 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                            </svg>
-                        </div>
-                        <span class="text-2xl font-bold">Nimbus</span>
+            <!-- Right side - Login Form -->
+            <div class="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
+                <div class="w-full max-w-md">
+                    <!-- Logo and Title (visible on mobile) -->
+                    <div class="text-center mb-8 lg:hidden">
+                        <h1 class="text-3xl font-bold text-white mb-2" style="text-shadow: 0 2px 8px rgba(0,0,0,0.3);">Nimbus</h1>
+                        <p class="text-cyan-100" style="text-shadow: 0 1px 4px rgba(0,0,0,0.2);">Gestión inteligente de citas médicas</p>
                     </div>
 
-                    <div class="glass-panel p-8 sm:p-10 rounded-3xl shadow-2xl">
+                    <!-- Login Card -->
+                    <div class="glass p-8 rounded-2xl shadow-2xl">
                         {{ $slot }}
                     </div>
 
-                    <p class="text-center mt-8 text-slate-500 text-sm">
-                        &copy; {{ date('Y') }} Nimbus Platform.
-                    </p>
+                    <!-- Footer -->
+                    <div class="mt-6 text-center">
+                        <p class="text-sm text-white" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+                            ¿No tienes cuenta? <a href="{{ route('register') }}" class="font-semibold hover:underline text-cyan-300">Regístrate aquí</a>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
