@@ -27,6 +27,10 @@ Route::get('/terms-of-service', function () {
     return view('legal.tos');
 })->name('legal.tos');
 
+// Google OAuth (public routes for login)
+Route::get('/auth/google/login', [GoogleAuthController::class, 'loginRedirect'])->name('google.login');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
+
 // Protected routes (require authentication)
 Route::middleware(['auth'])->group(function () {
     Route::get('/', HomeController::class)->name('home');
@@ -39,10 +43,9 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Google OAuth
+    // Google OAuth (calendar connection - requires auth)
     Route::get('/auth/google', [GoogleAuthController::class, 'connect'])->name('google.connect');
     Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
-    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 
     // Events endpoints
     Route::get('/events', [EventsController::class, 'index'])->name('events.index');
