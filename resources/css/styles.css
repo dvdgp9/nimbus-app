@@ -55,12 +55,22 @@ nav a::after { content: ""; position: absolute; left: 0; bottom: -6px; height: 2
 nav a:hover::after { width: 100%; }
 
 /* Glass utility */
-@layer utilities {
-  .glass {
-    background: rgba(255,255,255,0.07); 
-    backdrop-filter: blur(10px); 
-    border: 1px solid rgba(255,255,255,0.1);
-  }
+.glass {
+  background: rgba(255,255,255,0.07); 
+  backdrop-filter: blur(10px); 
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.glass-subtle {
+  background: rgba(255,255,255,0.03); 
+  backdrop-filter: blur(5px); 
+}
+.nimbus-bg {
+  background-color: var(--nimbus-bg-start);
+  background-image: 
+    radial-gradient(1200px 600px at 10% -10%, rgba(91,124,250,0.18), transparent 55%),
+    radial-gradient(800px 500px at 100% 0%, rgba(0,212,255,0.14), transparent 60%),
+    linear-gradient(180deg, var(--nimbus-bg-start), var(--nimbus-bg-end));
+  background-attachment: fixed;
 }
 
 /* Hero banner (optional for future landing) */
