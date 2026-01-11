@@ -34,13 +34,19 @@ class GoogleClientFactory
             if ($row && $row->access_token) {
                 $client->setAccessToken(json_decode($row->access_token, true) ?: $row->access_token);
                 if ($client->isAccessTokenExpired() && $row->refresh_token) {
-                    $client->fetchAccessTokenWithRefreshToken($row->refresh_token);
-                    $newToken = $client->getAccessToken();
-                    DB::table('google_tokens')->where('id', $row->id)->update([
-                        'access_token' => json_encode($newToken),
-                        'expires_at' => now()->addSeconds($newToken['expires_in'] ?? 0),
-                        'updated_at' => now(),
-                    ]);
+                    try {
+                        $client->fetchAccessTokenWithRefreshToken($row->refresh_token);
+                        $newToken = $client->getAccessToken();
+                        DB::table('google_tokens')->where('id', $row->id)->update([
+                            'access_token' => json_encode($newToken),
+                            'expires_at' => now()->addSeconds($newToken['expires_in'] ?? 0),
+                            'updated_at' => now(),
+                        ]);
+                    } catch (\Exception $e) {
+                        // If refresh fails (e.g., invalid_grant), clear the token to force reconnection
+                        DB::table('google_tokens')->where('id', $row->id)->delete();
+                        throw $e;
+                    }
                 }
             }
         }
