@@ -10,6 +10,7 @@ use App\Mail\AppointmentReminder;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use App\Services\AcumbamailService;
 
 class NotificationService
 {
@@ -35,21 +36,18 @@ class NotificationService
         // Generate shortlinks
         $confirmLink = Shortlink::createForAppointment($appointment, 'confirm');
         $cancelLink = Shortlink::createForAppointment($appointment, 'cancel');
-        $rescheduleLink = $this->getWhatsAppRescheduleLink($appointment);
 
         $data = [
             'appointment' => $appointment,
             'patient' => $patient,
             'confirmUrl' => $confirmLink->getUrl(),
             'cancelUrl' => $cancelLink->getUrl(),
-            'rescheduleUrl' => $rescheduleLink,
         ];
 
         try {
             return match($channel) {
                 'email' => $this->sendEmail($appointment, $patient, $data),
                 'sms' => $this->sendSMS($appointment, $patient, $data),
-                'whatsapp' => $this->sendWhatsApp($appointment, $patient, $data),
                 default => false,
             };
         } catch (Exception $e) {
@@ -91,7 +89,7 @@ class NotificationService
     }
 
     /**
-     * Send SMS reminder via Twilio
+     * Send SMS reminder via Acumbamail
      */
     protected function sendSMS(Appointment $appointment, Patient $patient, array $data): bool
     {
@@ -114,10 +112,10 @@ class NotificationService
         ]);
 
         try {
-            $twilioService = app(TwilioService::class);
-            $sid = $twilioService->sendSMS($patient->phone, $message);
+            $acumbamailService = app(AcumbamailService::class);
+            $smsId = $acumbamailService->sendSMS($patient->phone, $message);
             
-            $communication->markAsSent($sid);
+            $communication->markAsSent($smsId);
             $appointment->markReminderSent();
             
             Log::info("SMS reminder sent to {$patient->phone} for appointment {$appointment->id}");
@@ -130,149 +128,20 @@ class NotificationService
     }
 
     /**
-     * Send WhatsApp reminder via Twilio
-     */
-    protected function sendWhatsApp(Appointment $appointment, Patient $patient, array $data): bool
-    {
-        if (!$patient->phone) {
-            Log::warning("Patient {$patient->id} has no phone number");
-            return false;
-        }
-
-        // Elegir plantilla de WhatsApp según message_type del appointment
-        $messageType = $appointment->message_type ?? 1;
-        $templates   = config('services.twilio.whatsapp_templates', []);
-        $templateSid = $templates[$messageType] ?? null;
-
-        if (!$templateSid) {
-            Log::error("No WhatsApp template configured for message_type {$messageType}");
-            return false;
-        }
-
-        // Build template variables for WhatsApp Content Template
-        $firstName = explode(' ', $patient->name)[0];
-
-        $contentVariables = [
-            // Estos índices deben coincidir con los placeholders {{1}}, {{2}}, {{3}} de la plantilla
-            '1' => $firstName,
-            '2' => $appointment->formatted_date,
-            '3' => $appointment->formatted_time,
-        ];
-
-        $communication = Communication::create([
-            'appointment_id' => $appointment->id,
-            'patient_id' => $patient->id,
-            'channel' => 'whatsapp',
-            'type' => 'reminder',
-            'recipient' => $patient->phone,
-            'message_body' => json_encode([
-                'template' => $templateSid,
-                'variables' => $contentVariables,
-            ]),
-            'consent_verified' => true,
-            'status' => 'pending',
-        ]);
-
-        try {
-            $twilioService = app(TwilioService::class);
-            $sid = $twilioService->sendWhatsApp($patient->phone, [
-                'contentSid' => $templateSid,
-                'contentVariables' => $contentVariables,
-            ]);
-            
-            $communication->markAsSent($sid);
-            $appointment->markReminderSent();
-            
-            Log::info("WhatsApp reminder sent to {$patient->phone} for appointment {$appointment->id}");
-            return true;
-        } catch (Exception $e) {
-            $communication->markAsFailed($e->getMessage());
-            Log::error("WhatsApp failed: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
      * Build SMS message
      */
     protected function buildSMSMessage(Appointment $appointment, array $data): string
     {
+        $firstName = explode(' ', $appointment->patient->name)[0];
+        
         return sprintf(
-            "Hola %s! 👋\n\n" .
-            "Recordatorio de tu cita:\n" .
-            "📅 %s\n" .
-            "🕐 %s\n" .
-            "📋 %s\n\n" .
-            "Confirmar: %s\n" .
-            "Cancelar: %s\n" .
-            "Reprogramar: %s",
-            $appointment->patient->name,
+            "Hola %s! Recordatorio: %s el %s a las %s. Confirmar: %s Cancelar: %s",
+            $firstName,
+            $appointment->summary,
             $appointment->formatted_date,
             $appointment->formatted_time,
-            $appointment->summary,
             $data['confirmUrl'],
-            $data['cancelUrl'],
-            $data['rescheduleUrl']
+            $data['cancelUrl']
         );
-    }
-
-    /**
-     * Build WhatsApp message based on message_type
-     */
-    protected function buildWhatsAppMessage(Appointment $appointment, array $data): string
-    {
-        $firstName = explode(' ', $appointment->patient->name)[0];
-        $messageType = $appointment->message_type ?? 2; // Default to type 2 (paid sessions)
-        
-        // Get the appropriate template
-        $template = $this->getWhatsAppTemplate($messageType, $firstName, $appointment);
-        
-        // Add action buttons
-        $template .= sprintf(
-            "\n\n✅ Confirmar: %s\n" .
-            "❌ Cancelar: %s\n" .
-            "📞 Reprogramar: %s",
-            $data['confirmUrl'],
-            $data['cancelUrl'],
-            $data['rescheduleUrl']
-        );
-
-        return $template;
-    }
-
-    /**
-     * Get WhatsApp message template based on type
-     */
-    protected function getWhatsAppTemplate(int $type, string $firstName, Appointment $appointment): string
-    {
-        $day = $appointment->formatted_date;
-        $time = $appointment->formatted_time;
-        
-        // IMPORTANTE: este texto debe coincidir EXACTAMENTE con la plantilla de WhatsApp aprobada
-        // Hola {{1}} 😊
-        // Te recuerdo nuestra sesión del {{2}} a las {{3}} (duración: 55 minutos).
-        // Por favor, confirma o reprograma usando los botones que verás a continuación.
-        // ¡Gracias! 🤗
-
-        return "Hola {$firstName} 😊\n" .
-               "Te recuerdo nuestra sesión del {$day} a las {$time} (duración: 55 minutos).\n" .
-               "Por favor, confirma o reprograma usando los botones que verás a continuación.\n" .
-               "¡Gracias! 🤗";
-    }
-
-    /**
-     * Generate WhatsApp reschedule link
-     */
-    protected function getWhatsAppRescheduleLink(Appointment $appointment): string
-    {
-        $userPhone = optional($appointment->user)->whatsapp_phone;
-        $phone = $userPhone ?: config('services.whatsapp.professional_phone', '+34600000000');
-        $message = urlencode(sprintf(
-            "Hola! Necesito reprogramar mi cita del %s a las %s. ¿Qué disponibilidad tienes?",
-            $appointment->formatted_date,
-            $appointment->formatted_time
-        ));
-
-        return "https://wa.me/{$phone}?text={$message}";
     }
 }

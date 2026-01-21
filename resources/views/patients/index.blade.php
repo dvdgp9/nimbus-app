@@ -91,8 +91,7 @@
               <div class="flex items-center gap-2 mb-1">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                   {{ $patient->preferred_channel === 'email' ? 'bg-blue-500/20 text-blue-300' : '' }}
-                  {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-300' : '' }}
-                  {{ $patient->preferred_channel === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-300' : '' }}">
+                  {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-300' : '' }}">
                   {{ ucfirst($patient->preferred_channel) }}
                 </span>
               </div>
@@ -135,13 +134,6 @@
                 </span>
                 <span class="inline-flex items-center justify-center w-6 h-6 rounded {{ $patient->consent_sms ? 'bg-green-500/20 text-green-300' : 'bg-white/5 text-white/30' }}" title="SMS">
                   @if($patient->consent_sms)
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                  @else
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                  @endif
-                </span>
-                <span class="inline-flex items-center justify-center w-6 h-6 rounded {{ $patient->consent_whatsapp ? 'bg-green-500/20 text-green-300' : 'bg-white/5 text-white/30' }}" title="WhatsApp">
-                  @if($patient->consent_whatsapp)
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                   @else
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>

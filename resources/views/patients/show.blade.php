@@ -16,8 +16,7 @@
           <span class="font-mono text-2xl font-bold text-cyan-400">{{ $patient->code }}</span>
           <span class="inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium
             {{ $patient->preferred_channel === 'email' ? 'bg-blue-500/20 text-blue-400' : '' }}
-            {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-400' : '' }}
-            {{ $patient->preferred_channel === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-400' : '' }}">
+            {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-400' : '' }}">
             {{ ucfirst($patient->preferred_channel) }}
           </span>
         </div>
@@ -83,8 +82,7 @@
             <dd>
               <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
                 {{ $patient->preferred_channel === 'email' ? 'bg-blue-500/20 text-blue-300' : '' }}
-                {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-300' : '' }}
-                {{ $patient->preferred_channel === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-300' : '' }}">
+                {{ $patient->preferred_channel === 'sms' ? 'bg-green-500/20 text-green-300' : '' }}">
                 {{ ucfirst($patient->preferred_channel) }}
               </span>
             </dd>
@@ -123,19 +121,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               <span class="text-white/40">SMS</span>
-            @endif
-          </div>
-          <div class="flex items-center gap-2">
-            @if($patient->consent_whatsapp)
-              <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <span class="text-white">WhatsApp</span>
-            @else
-              <svg class="w-4 h-4 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <span class="text-white/40">WhatsApp</span>
             @endif
           </div>
         </div>

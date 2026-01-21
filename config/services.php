@@ -41,24 +41,9 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
-    'twilio' => [
-        'sid' => env('TWILIO_SID'),
-        'token' => env('TWILIO_TOKEN'),
-        'from' => env('TWILIO_FROM'), // Phone number for SMS
-        'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'), // WhatsApp number
-        // WhatsApp Content Template SIDs, indexed by message_type (1..4, etc.)
-        'whatsapp_templates' => [
-            // Ejemplo: tipo 1 (sesión gratuita / intro)
-            1 => 'HXaf44c34f721aaa3e9ff411e3c8a5f941',
-            // 2, 3, 4: añade aquí las SIDs cuando Twilio las vaya aprobando
-            2 => null,
-            3 => null,
-            4 => null,
-        ],
-    ],
-
-    'whatsapp' => [
-        'professional_phone' => env('WHATSAPP_PROFESSIONAL_PHONE', '+34600000000'),
+    'acumbamail' => [
+        'auth_token' => env('ACUMBAMAIL_AUTH_TOKEN'),
+        'sender' => env('ACUMBAMAIL_SMS_SENDER', 'Nimbus'),
     ],
 
 ];

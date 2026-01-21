@@ -67,10 +67,9 @@ class PatientsController extends Controller
                 })
             ],
             'phone' => 'required|string|max:20',
-            'preferred_channel' => 'required|in:email,sms,whatsapp',
+            'preferred_channel' => 'required|in:email,sms',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
-            'consent_whatsapp' => 'boolean',
             'notes' => 'nullable|string',
         ], [
             'code.unique' => 'Ya existe un paciente con este código.',
@@ -90,8 +89,7 @@ class PatientsController extends Controller
         
         // Set consent date if any consent is given
         if ($validated['consent_email'] ?? false || 
-            $validated['consent_sms'] ?? false || 
-            $validated['consent_whatsapp'] ?? false) {
+            $validated['consent_sms'] ?? false) {
             $validated['consent_date'] = now();
         }
 
@@ -164,10 +162,9 @@ class PatientsController extends Controller
                 })->ignore($patient->id)
             ],
             'phone' => 'required|string|max:20',
-            'preferred_channel' => 'required|in:email,sms,whatsapp',
+            'preferred_channel' => 'required|in:email,sms',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
-            'consent_whatsapp' => 'boolean',
             'notes' => 'nullable|string',
         ], [
             'code.unique' => 'Ya existe otro paciente con este código.',
@@ -186,7 +183,6 @@ class PatientsController extends Controller
         $consentChanged = false;
         if (($validated['consent_email'] ?? false) && !$patient->consent_email) $consentChanged = true;
         if (($validated['consent_sms'] ?? false) && !$patient->consent_sms) $consentChanged = true;
-        if (($validated['consent_whatsapp'] ?? false) && !$patient->consent_whatsapp) $consentChanged = true;
         
         if ($consentChanged && !$patient->consent_date) {
             $validated['consent_date'] = now();

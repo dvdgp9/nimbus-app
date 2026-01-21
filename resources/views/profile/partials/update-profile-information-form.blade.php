@@ -47,20 +47,6 @@
             @endif
         </div>
 
-        <div>
-            <x-input-label for="whatsapp_phone" value="WhatsApp" />
-            <x-text-input
-                id="whatsapp_phone"
-                name="whatsapp_phone"
-                type="text"
-                class="mt-1 block w-full"
-                :value="old('whatsapp_phone', $user->whatsapp_phone)"
-                autocomplete="tel"
-            />
-            <x-input-error class="mt-2" :messages="$errors->get('whatsapp_phone')" />
-            <p class="mt-1 text-xs text-gray-500">Número de WhatsApp profesional, en formato internacional (ej. +34600111222).</p>
-        </div>
-
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

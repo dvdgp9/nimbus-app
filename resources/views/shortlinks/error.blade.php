@@ -18,9 +18,7 @@
             <p class="text-white/70 mb-4">{{ $detail }}</p>
 
             <p class="text-sm text-white/60 mt-4">
-              ¿Necesitas ayuda? Puedes escribir por
-              <a href="https://wa.me/{{ config('services.whatsapp.professional_phone') }}" class="text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline">WhatsApp</a>
-              para revisar tu cita.
+              ¿Necesitas ayuda? Contacta con tu profesional para revisar tu cita.
             </p>
           </div>
         </div>

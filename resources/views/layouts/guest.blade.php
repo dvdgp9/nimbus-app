@@ -48,7 +48,7 @@
                             </div>
                             <div>
                                 <h3 class="font-semibold text-lg text-white">Recordatorios automáticos</h3>
-                                <p class="text-white/60">Envía notificaciones a tus pacientes vía WhatsApp</p>
+                                <p class="text-white/60">Envía notificaciones a tus pacientes vía Email y SMS</p>
                             </div>
                         </div>
                         <div class="flex items-start gap-4">

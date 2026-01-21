@@ -63,14 +63,6 @@ class ShortlinkController extends Controller
                     'appointment' => $appointment,
                 ]);
 
-            case 'reschedule':
-                // For reschedule, redirect to WhatsApp
-                $phone = config('whatsapp.professional_phone');
-                $message = urlencode("Hola, necesito reprogramar mi cita: {$appointment->summary} del {$appointment->formatted_date}");
-                $whatsappUrl = "https://wa.me/{$phone}?text={$message}";
-                
-                return redirect()->away($whatsappUrl);
-
             default:
                 return view('shortlinks.error', [
                     'message' => 'Acción no válida',

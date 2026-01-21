@@ -256,10 +256,6 @@
             ✅
             <span>Confirmar Asistencia</span>
           </a>
-          <a href="{{ $rescheduleUrl }}" class="btn btn-reschedule" style="color:#ffffff !important; text-decoration:none;">
-            📞
-            <span>Reprogramar por WhatsApp</span>
-          </a>
           <a href="{{ $cancelUrl }}" class="btn btn-cancel" style="color:#ffffff !important; text-decoration:none;">
             ❌
             <span>Cancelar Cita</span>

@@ -111,7 +111,6 @@
         >
           <option value="email" {{ old('preferred_channel', $patient->preferred_channel) === 'email' ? 'selected' : '' }}>Email</option>
           <option value="sms" {{ old('preferred_channel', $patient->preferred_channel) === 'sms' ? 'selected' : '' }}>SMS</option>
-          <option value="whatsapp" {{ old('preferred_channel', $patient->preferred_channel) === 'whatsapp' ? 'selected' : '' }}>WhatsApp</option>
         </select>
         @error('preferred_channel')
           <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
@@ -145,17 +144,6 @@
               class="w-4 h-4 bg-white/5 border border-white/20 rounded text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
             >
             <span class="text-white/80">Consentimiento para envío de SMS</span>
-          </label>
-
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input 
-              type="checkbox" 
-              name="consent_whatsapp" 
-              value="1"
-              {{ old('consent_whatsapp', $patient->consent_whatsapp) ? 'checked' : '' }}
-              class="w-4 h-4 bg-white/5 border border-white/20 rounded text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
-            >
-            <span class="text-white/80">Consentimiento para envío por WhatsApp</span>
           </label>
         </div>
       </div>

@@ -18,7 +18,6 @@ class Patient extends Model
         'preferred_channel',
         'consent_email',
         'consent_sms',
-        'consent_whatsapp',
         'consent_date',
         'notes',
     ];
@@ -26,7 +25,6 @@ class Patient extends Model
     protected $casts = [
         'consent_email' => 'boolean',
         'consent_sms' => 'boolean',
-        'consent_whatsapp' => 'boolean',
         'consent_date' => 'datetime',
     ];
 
@@ -56,7 +54,6 @@ class Patient extends Model
         return match($channel) {
             'email' => $this->consent_email,
             'sms' => $this->consent_sms,
-            'whatsapp' => $this->consent_whatsapp,
             default => false,
         };
     }
@@ -65,7 +62,7 @@ class Patient extends Model
     {
         return match($channel) {
             'email' => $this->email,
-            'sms', 'whatsapp' => $this->phone,
+            'sms' => $this->phone,
             default => null,
         };
     }
