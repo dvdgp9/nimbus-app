@@ -8,6 +8,7 @@ use App\Http\Controllers\CalendarsController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ShortlinkController;
 use App\Http\Controllers\PatientsController;
+use App\Http\Controllers\SmsTestController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -62,6 +63,10 @@ Route::middleware(['auth'])->group(function () {
     // Email
     Route::get('/email', [EmailController::class, 'create'])->name('email.create');
     Route::post('/email', [EmailController::class, 'send'])->name('email.send');
+
+    // SMS Test
+    Route::get('/sms/test', [SmsTestController::class, 'index'])->name('sms.test');
+    Route::post('/sms/test', [SmsTestController::class, 'send'])->name('sms.send');
 });
 
 require __DIR__.'/auth.php';
