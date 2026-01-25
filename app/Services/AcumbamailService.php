@@ -81,7 +81,15 @@ class AcumbamailService
                 'auth_token' => $this->authToken,
             ]);
 
-            return (float) $response->body();
+            if (!$response->successful()) {
+                Log::error("Acumbamail API error in getCreditsSMS: " . $response->body());
+                return null;
+            }
+
+            $data = $response->json();
+            
+            // La API devuelve un JSON como {"Creditos": 248}
+            return isset($data['Creditos']) ? (float) $data['Creditos'] : 0.0;
         } catch (Exception $e) {
             Log::error("Failed to fetch Acumbamail credits: " . $e->getMessage());
             return null;
