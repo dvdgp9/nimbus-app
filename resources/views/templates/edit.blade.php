@@ -78,7 +78,7 @@
                   data-field="{{ $field }}"
                   title="{{ $description }}"
                 >
-                  @{{ {{ $field }} }}
+                  {{ '{{' . $field . '}}' }}
                 </button>
               @endforeach
             </div>
