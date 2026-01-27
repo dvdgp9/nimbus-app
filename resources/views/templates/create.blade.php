@@ -53,7 +53,7 @@
               type="text" 
               id="subject" 
               name="subject" 
-              value="{{ old('subject', 'Recordatorio: {{appointment_summary}}') }}"
+              value="{{ old('subject', 'Recordatorio: {{' . 'appointment_summary}}') }}"
               required
               class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition @error('subject') border-red-500/50 @enderror"
               placeholder="Asunto del correo"
@@ -98,9 +98,9 @@
               class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition font-mono text-sm @error('body') border-red-500/50 @enderror"
               placeholder="Escribe tu mensaje aquí..."
               data-preview-field="body"
-            >{{ old('body', $channel === 'sms' 
-              ? "Hola {{patient_first_name}}! Recordatorio: {{appointment_summary}} el {{appointment_date}} a las {{appointment_time}}. Confirmar: {{confirm_link}} Cancelar: {{cancel_link}}"
-              : "Hola {{patient_first_name}},\n\nTe recordamos tu próxima cita:\n\n📅 {{appointment_date}}\n🕐 {{appointment_time}}\n📋 {{appointment_summary}}\n\n¿Qué deseas hacer?\n\n✅ Confirmar: {{confirm_link}}\n❌ Cancelar: {{cancel_link}}\n\nSaludos,\n{{professional_name}}") }}</textarea>
+          >{{ old('body', $channel === 'sms' 
+            ? "Hola " . '{{' . "patient_first_name" . '}}' . "! Recordatorio: " . '{{' . "appointment_summary" . '}}' . " el " . '{{' . "appointment_date" . '}}' . " a las " . '{{' . "appointment_time" . '}}' . ". Confirmar: " . '{{' . "confirm_link" . '}}' . " Cancelar: " . '{{' . "cancel_link" . '}}'
+            : "Hola " . '{{' . "patient_first_name" . '}}' . ",\n\nTe recordamos tu próxima cita:\n\n📅 " . '{{' . "appointment_date" . '}}' . "\n🕐 " . '{{' . "appointment_time" . '}}' . "\n📋 " . '{{' . "appointment_summary" . '}}' . "\n\n¿Qué deseas hacer?\n\n✅ Confirmar: " . '{{' . "confirm_link" . '}}' . "\n❌ Cancelar: " . '{{' . "cancel_link" . '}}' . "\n\nSaludos,\n" . '{{' . "professional_name" . '}}') }}</textarea>
             @error('body')
               <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
             @enderror
