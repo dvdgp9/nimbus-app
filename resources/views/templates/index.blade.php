@@ -154,11 +154,13 @@
       </svg>
       Campos dinámicos disponibles
     </h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-      @foreach($dynamicFields as $field => $description)
-        <div class="flex items-start gap-2">
-          <code class="px-2 py-0.5 bg-cyan-500/10 text-cyan-300 rounded text-xs whitespace-nowrap">@{{{{ $field }}}}</code>
-          <span class="text-white/60">{{ $description }}</span>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+      @foreach(\App\Models\MessageTemplate::AVAILABLE_FIELDS as $field => $label)
+        <div class="flex items-center gap-3">
+          <code class="text-cyan-300 font-mono text-xs bg-cyan-500/10 px-2 py-1 rounded">
+            @{{ {{ $field }} }}
+          </code>
+          <span class="text-sm text-white/60">{{ $label }}</span>
         </div>
       @endforeach
     </div>
