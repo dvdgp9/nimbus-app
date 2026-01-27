@@ -157,7 +157,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
       @foreach($dynamicFields as $field => $description)
         <div class="flex items-start gap-2">
-          <code class="px-2 py-0.5 bg-cyan-500/10 text-cyan-300 rounded text-xs whitespace-nowrap">{{ '{{' . $field . '}}' }}</code>
+          <code class="px-2 py-0.5 bg-cyan-500/10 text-cyan-300 rounded text-xs whitespace-nowrap">{!! '&#123;&#123;' . e($field) . '&#125;&#125;' !!}</code>
           <span class="text-white/60">{{ $description }}</span>
         </div>
       @endforeach

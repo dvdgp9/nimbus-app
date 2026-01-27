@@ -78,7 +78,7 @@
                   data-field="{{ $field }}"
                   title="{{ $description }}"
                 >
-                  {{ '{{' . $field . '}}' }}
+                  {!! '&#123;&#123;' . e($field) . '&#125;&#125;' !!}
                 </button>
               @endforeach
             </div>
