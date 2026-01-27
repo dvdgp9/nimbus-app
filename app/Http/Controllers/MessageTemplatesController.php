@@ -37,9 +37,16 @@ class MessageTemplatesController extends Controller
     {
         $channel = $request->get('channel', 'email');
 
+        // Default values defined here to avoid Blade parsing issues with {{ }}
+        $defaultSubject = 'Recordatorio: {{appointment_summary}}';
+        $defaultBodySms = 'Hola {{patient_first_name}}! Recordatorio: {{appointment_summary}} el {{appointment_date}} a las {{appointment_time}}. Confirmar: {{confirm_link}} Cancelar: {{cancel_link}}';
+        $defaultBodyEmail = "Hola {{patient_first_name}},\n\nTe recordamos tu próxima cita:\n\n📅 {{appointment_date}}\n🕐 {{appointment_time}}\n📋 {{appointment_summary}}\n\n¿Qué deseas hacer?\n\n✅ Confirmar: {{confirm_link}}\n❌ Cancelar: {{cancel_link}}\n\nSaludos,\n{{professional_name}}";
+
         return view('templates.create', [
             'channel' => $channel,
             'dynamicFields' => MessageTemplate::DYNAMIC_FIELDS,
+            'defaultSubject' => $defaultSubject,
+            'defaultBody' => $channel === 'sms' ? $defaultBodySms : $defaultBodyEmail,
         ]);
     }
 
