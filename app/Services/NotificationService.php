@@ -6,7 +6,9 @@ use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Communication;
 use App\Models\Shortlink;
+use App\Models\MessageTemplate;
 use App\Mail\AppointmentReminder;
+use App\Mail\TemplatedReminder;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -37,11 +39,15 @@ class NotificationService
         $confirmLink = Shortlink::createForAppointment($appointment, 'confirm');
         $cancelLink = Shortlink::createForAppointment($appointment, 'cancel');
 
+        // Build template data for dynamic fields
+        $templateData = $this->buildTemplateData($appointment, $patient, $confirmLink, $cancelLink);
+
         $data = [
             'appointment' => $appointment,
             'patient' => $patient,
             'confirmUrl' => $confirmLink->getUrl(),
             'cancelUrl' => $cancelLink->getUrl(),
+            'templateData' => $templateData,
         ];
 
         try {
@@ -57,24 +63,80 @@ class NotificationService
     }
 
     /**
+     * Build template data array for dynamic field replacement
+     */
+    protected function buildTemplateData(Appointment $appointment, Patient $patient, Shortlink $confirmLink, Shortlink $cancelLink): array
+    {
+        $professional = $patient->user;
+        
+        return [
+            'patient_name' => $patient->name,
+            'patient_first_name' => explode(' ', $patient->name)[0],
+            'patient_email' => $patient->email ?? '',
+            'appointment_date' => $appointment->formatted_date,
+            'appointment_time' => $appointment->formatted_time,
+            'appointment_summary' => $appointment->summary ?? 'Cita',
+            'professional_name' => $professional?->name ?? 'Tu profesional',
+            'confirm_link' => $confirmLink->getUrl(),
+            'cancel_link' => $cancelLink->getUrl(),
+            'hangout_link' => $appointment->hangout_link ?? '',
+        ];
+    }
+
+    /**
+     * Get the user's default template for a channel, or null if none
+     */
+    protected function getUserTemplate(Patient $patient, string $channel): ?MessageTemplate
+    {
+        if (!$patient->user) {
+            return null;
+        }
+
+        return $patient->user
+            ->messageTemplates()
+            ->forChannel($channel)
+            ->default()
+            ->first();
+    }
+
+    /**
      * Send email reminder
      */
     protected function sendEmail(Appointment $appointment, Patient $patient, array $data): bool
     {
+        $template = $this->getUserTemplate($patient, 'email');
+        $templateData = $data['templateData'];
+
+        // Determine subject and body
+        if ($template) {
+            $subject = $template->parseSubject($templateData);
+            $body = $template->parse($templateData);
+        } else {
+            // Fallback to default
+            $subject = 'Recordatorio: ' . $appointment->summary;
+            $body = null; // Will use default Mailable template
+        }
+
         $communication = Communication::create([
             'appointment_id' => $appointment->id,
             'patient_id' => $patient->id,
             'channel' => 'email',
             'type' => 'reminder',
             'recipient' => $patient->email,
-            'subject' => 'Recordatorio: ' . $appointment->summary,
-            'message_body' => 'Reminder email',
+            'subject' => $subject,
+            'message_body' => $body ?? 'Reminder email',
             'consent_verified' => true,
             'status' => 'pending',
         ]);
 
         try {
-            Mail::to($patient->email)->send(new AppointmentReminder($appointment, $patient, $data));
+            if ($template) {
+                // Send with custom template
+                Mail::to($patient->email)->send(new TemplatedReminder($appointment, $patient, $subject, $body, $data));
+            } else {
+                // Send with default template
+                Mail::to($patient->email)->send(new AppointmentReminder($appointment, $patient, $data));
+            }
             
             $communication->markAsSent();
             $appointment->markReminderSent();
@@ -98,7 +160,7 @@ class NotificationService
             return false;
         }
 
-        $message = $this->buildSMSMessage($appointment, $data);
+        $message = $this->buildSMSMessage($appointment, $patient, $data);
 
         $communication = Communication::create([
             'appointment_id' => $appointment->id,
@@ -130,9 +192,16 @@ class NotificationService
     /**
      * Build SMS message
      */
-    protected function buildSMSMessage(Appointment $appointment, array $data): string
+    protected function buildSMSMessage(Appointment $appointment, Patient $patient, array $data): string
     {
-        $firstName = explode(' ', $appointment->patient->name)[0];
+        $template = $this->getUserTemplate($patient, 'sms');
+        
+        if ($template) {
+            return $template->parse($data['templateData']);
+        }
+
+        // Fallback to default message
+        $firstName = explode(' ', $patient->name)[0];
         
         return sprintf(
             "Hola %s! Recordatorio: %s el %s a las %s. Confirmar: %s Cancelar: %s",

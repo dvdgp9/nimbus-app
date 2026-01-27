@@ -9,6 +9,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ShortlinkController;
 use App\Http\Controllers\PatientsController;
 use App\Http\Controllers\SmsTestController;
+use App\Http\Controllers\MessageTemplatesController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -67,6 +68,12 @@ Route::middleware(['auth'])->group(function () {
     // SMS Test
     Route::get('/sms/test', [SmsTestController::class, 'index'])->name('sms.test');
     Route::post('/sms/test', [SmsTestController::class, 'send'])->name('sms.send');
+
+    // Message Templates
+    Route::resource('templates', MessageTemplatesController::class)->except(['show']);
+    Route::post('/templates/{template}/duplicate', [MessageTemplatesController::class, 'duplicate'])->name('templates.duplicate');
+    Route::post('/templates/{template}/set-default', [MessageTemplatesController::class, 'setDefault'])->name('templates.setDefault');
+    Route::post('/templates/preview', [MessageTemplatesController::class, 'preview'])->name('templates.preview');
 });
 
 require __DIR__.'/auth.php';

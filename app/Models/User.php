@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -11,6 +12,19 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * Relationships
+     */
+    public function messageTemplates(): HasMany
+    {
+        return $this->hasMany(MessageTemplate::class);
+    }
+
+    public function patients(): HasMany
+    {
+        return $this->hasMany(Patient::class);
+    }
 
     /**
      * The attributes that are mass assignable.

@@ -15,14 +15,14 @@
                     <x-nav-link :href="route('home')" :active="request()->routeIs('home')">
                         Inicio
                     </x-nav-link>
+                    <x-nav-link :href="route('events.index')" :active="request()->routeIs('events.*')">
+                        Citas
+                    </x-nav-link>
                     <x-nav-link :href="route('patients.index')" :active="request()->routeIs('patients.*')">
                         Pacientes
                     </x-nav-link>
-                    <x-nav-link :href="route('events.index')" :active="request()->routeIs('events.*')">
-                        Eventos
-                    </x-nav-link>
-                    <x-nav-link :href="route('calendars.index')" :active="request()->routeIs('calendars.*')">
-                        Calendarios
+                    <x-nav-link :href="route('templates.index')" :active="request()->routeIs('templates.*')">
+                        Mensajes
                     </x-nav-link>
                 </div>
             </div>
@@ -45,8 +45,13 @@
 
                     <x-slot name="content">
                         <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
+                            Mi perfil
                         </x-dropdown-link>
+                        <x-dropdown-link :href="route('calendars.index')">
+                            Calendarios
+                        </x-dropdown-link>
+
+                        <div class="border-t border-white/10 my-1"></div>
 
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
@@ -81,14 +86,14 @@
             <x-responsive-nav-link :href="route('home')" :active="request()->routeIs('home')">
                 Inicio
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('events.index')" :active="request()->routeIs('events.*')">
+                Citas
+            </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('patients.index')" :active="request()->routeIs('patients.*')">
                 Pacientes
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('events.index')" :active="request()->routeIs('events.*')">
-                Eventos
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('calendars.index')" :active="request()->routeIs('calendars.*')">
-                Calendarios
+            <x-responsive-nav-link :href="route('templates.index')" :active="request()->routeIs('templates.*')">
+                Mensajes
             </x-responsive-nav-link>
         </div>
 

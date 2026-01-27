@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Mail;
+
+use App\Models\Appointment;
+use App\Models\Patient;
+use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\SerializesModels;
+
+class TemplatedReminder extends Mailable
+{
+    use SerializesModels;
+
+    /**
+     * Create a new message instance.
+     */
+    public function __construct(
+        public Appointment $appointment,
+        public Patient $patient,
+        public string $emailSubject,
+        public string $emailBody,
+        public array $links,
+    ) {}
+
+    /**
+     * Get the message envelope.
+     */
+    public function envelope(): Envelope
+    {
+        return new Envelope(
+            subject: $this->emailSubject,
+            from: config('mail.from.address'),
+        );
+    }
+
+    /**
+     * Get the message content definition.
+     */
+    public function content(): Content
+    {
+        return new Content(
+            view: 'emails.templated-reminder',
+            with: [
+                'appointment' => $this->appointment,
+                'patient' => $this->patient,
+                'emailBody' => $this->emailBody,
+                'confirmUrl' => $this->links['confirmUrl'],
+                'cancelUrl' => $this->links['cancelUrl'],
+            ],
+        );
+    }
+
+    /**
+     * Get the attachments for the message.
+     *
+     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     */
+    public function attachments(): array
+    {
+        return [];
+    }
+}
