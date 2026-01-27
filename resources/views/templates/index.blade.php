@@ -155,7 +155,7 @@
       Campos dinámicos disponibles
     </h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-      @foreach(\App\Models\MessageTemplate::AVAILABLE_FIELDS as $field => $label)
+      @foreach(\App\Models\MessageTemplate::DYNAMIC_FIELDS as $field => $label)
         <div class="flex items-center gap-3">
           <code class="text-cyan-300 font-mono text-xs bg-cyan-500/10 px-2 py-1 rounded">
             @{{ {{ $field }} }}
