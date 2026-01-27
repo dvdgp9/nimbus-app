@@ -53,7 +53,7 @@
               type="text" 
               id="subject" 
               name="subject" 
-              value="{{ old('subject', 'Recordatorio: {{' . 'appointment_summary}}') }}"
+              value="{{ old('subject', 'Recordatorio: ' . '{{' . 'appointment_summary' . '}}') }}"
               required
               class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition @error('subject') border-red-500/50 @enderror"
               placeholder="Asunto del correo"
