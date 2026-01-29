@@ -43,6 +43,26 @@
             @enderror
           </div>
 
+          {{-- Code --}}
+          <div>
+            <label for="code" class="block text-sm font-medium text-white/80 mb-2">
+              Código de mensaje
+            </label>
+            <input 
+              type="text" 
+              id="code" 
+              name="code" 
+              value="{{ old('code', $template->code) }}"
+              maxlength="20"
+              class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition uppercase @error('code') border-red-500/50 @enderror"
+              placeholder="Ej: BP, RC, ST"
+            >
+            @error('code')
+              <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
+            @enderror
+            <p class="mt-1 text-xs text-white/40">Este código se extrae del título del evento en Google Calendar (última palabra). Ej: "EVTA Cita 1 <strong>BP</strong>"</p>
+          </div>
+
           @if($template->isEmail())
           {{-- Subject (only for email) --}}
           <div>

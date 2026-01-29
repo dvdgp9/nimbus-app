@@ -17,7 +17,8 @@ use App\Services\AcumbamailService;
 class NotificationService
 {
     /**
-     * Send reminder for an appointment
+     * Send reminder for an appointment via ALL channels with consent
+     * Returns array with results per channel
      */
     public function sendReminder(Appointment $appointment): bool
     {
@@ -27,15 +28,22 @@ class NotificationService
         }
 
         $patient = $appointment->patient;
-        $channel = $patient->preferred_channel;
+        
+        // Determine which channels to send to (all with consent)
+        $channelsToSend = [];
+        if ($patient->consent_email && $patient->email) {
+            $channelsToSend[] = 'email';
+        }
+        if ($patient->consent_sms && $patient->phone) {
+            $channelsToSend[] = 'sms';
+        }
 
-        // Verify consent
-        if (!$patient->hasConsentFor($channel)) {
-            Log::warning("Patient {$patient->id} has no consent for {$channel}");
+        if (empty($channelsToSend)) {
+            Log::warning("Patient {$patient->id} has no channels with consent");
             return false;
         }
 
-        // Generate shortlinks
+        // Generate shortlinks (shared for all channels)
         $confirmLink = Shortlink::createForAppointment($appointment, 'confirm');
         $cancelLink = Shortlink::createForAppointment($appointment, 'cancel');
 
@@ -50,16 +58,29 @@ class NotificationService
             'templateData' => $templateData,
         ];
 
-        try {
-            return match($channel) {
-                'email' => $this->sendEmail($appointment, $patient, $data),
-                'sms' => $this->sendSMS($appointment, $patient, $data),
-                default => false,
-            };
-        } catch (Exception $e) {
-            Log::error("Failed to send reminder: " . $e->getMessage());
-            return false;
+        $results = [];
+        
+        // Send via ALL channels with consent
+        foreach ($channelsToSend as $channel) {
+            try {
+                $success = match($channel) {
+                    'email' => $this->sendEmail($appointment, $patient, $data),
+                    'sms' => $this->sendSMS($appointment, $patient, $data),
+                    default => false,
+                };
+                $results[$channel] = $success;
+                
+                if ($success) {
+                    Log::info("Reminder sent via {$channel} for appointment {$appointment->id}");
+                }
+            } catch (Exception $e) {
+                Log::error("Failed to send {$channel} reminder: " . $e->getMessage());
+                $results[$channel] = false;
+            }
         }
+
+        // Return true if at least one channel succeeded
+        return in_array(true, $results, true);
     }
 
     /**
@@ -84,19 +105,46 @@ class NotificationService
     }
 
     /**
-     * Get the user's default template for a channel, or null if none
+     * Get the user's template for a channel by message code, or fallback to default
      */
-    protected function getUserTemplate(Patient $patient, string $channel): ?MessageTemplate
+    protected function getUserTemplate(Patient $patient, string $channel, ?string $messageCode = null): ?MessageTemplate
     {
         if (!$patient->user) {
             return null;
         }
 
-        return $patient->user
-            ->messageTemplates()
-            ->forChannel($channel)
-            ->default()
-            ->first();
+        $query = $patient->user->messageTemplates()->forChannel($channel);
+
+        // If message code is provided, try to find template with that code
+        if ($messageCode) {
+            $template = (clone $query)->where('code', $messageCode)->first();
+            if ($template) {
+                return $template;
+            }
+        }
+
+        // Fallback to default template
+        return $query->default()->first();
+    }
+
+    /**
+     * Check if appointment has a valid message code with matching template
+     */
+    public function hasValidMessageCode(Appointment $appointment): bool
+    {
+        if (!$appointment->message_code || !$appointment->patient) {
+            return false;
+        }
+
+        $user = $appointment->patient->user;
+        if (!$user) {
+            return false;
+        }
+
+        // Check if any template exists with this code for any channel
+        return $user->messageTemplates()
+            ->where('code', $appointment->message_code)
+            ->exists();
     }
 
     /**
@@ -104,7 +152,7 @@ class NotificationService
      */
     protected function sendEmail(Appointment $appointment, Patient $patient, array $data): bool
     {
-        $template = $this->getUserTemplate($patient, 'email');
+        $template = $this->getUserTemplate($patient, 'email', $appointment->message_code);
         $templateData = $data['templateData'];
 
         // Determine subject and body
@@ -194,7 +242,7 @@ class NotificationService
      */
     protected function buildSMSMessage(Appointment $appointment, Patient $patient, array $data): string
     {
-        $template = $this->getUserTemplate($patient, 'sms');
+        $template = $this->getUserTemplate($patient, 'sms', $appointment->message_code);
         
         if ($template) {
             return $template->parse($data['templateData']);

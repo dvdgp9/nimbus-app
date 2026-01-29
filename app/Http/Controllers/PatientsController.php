@@ -37,10 +37,18 @@ class PatientsController extends Controller
 
     /**
      * Show the form for creating a new patient
+     * Accepts prefilled parameters from first session detection
      */
-    public function create()
+    public function create(Request $request)
     {
-        return view('patients.create');
+        return view('patients.create', [
+            'prefill' => [
+                'name' => $request->query('name'),
+                'email' => $request->query('email'),
+                'phone' => $request->query('phone'),
+                'notes' => $request->query('notes'),
+            ],
+        ]);
     }
 
     /**
@@ -67,7 +75,6 @@ class PatientsController extends Controller
                 })
             ],
             'phone' => 'required|string|max:20',
-            'preferred_channel' => 'required|in:email,sms',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
             'notes' => 'nullable|string',
@@ -78,8 +85,10 @@ class PatientsController extends Controller
             'name.required' => 'El nombre del paciente es obligatorio.',
             'email.required' => 'El email del paciente es obligatorio.',
             'phone.required' => 'El teléfono del paciente es obligatorio.',
-            'preferred_channel.required' => 'Debes seleccionar un canal preferido.',
         ]);
+
+        // Set default preferred_channel to 'email' for backwards compatibility
+        $validated['preferred_channel'] = 'email';
 
         // Assign user_id
         $validated['user_id'] = auth()->id();
@@ -162,7 +171,6 @@ class PatientsController extends Controller
                 })->ignore($patient->id)
             ],
             'phone' => 'required|string|max:20',
-            'preferred_channel' => 'required|in:email,sms',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
             'notes' => 'nullable|string',
@@ -173,7 +181,6 @@ class PatientsController extends Controller
             'name.required' => 'El nombre del paciente es obligatorio.',
             'email.required' => 'El email del paciente es obligatorio.',
             'phone.required' => 'El teléfono del paciente es obligatorio.',
-            'preferred_channel.required' => 'Debes seleccionar un canal preferido.',
         ]);
 
         // Normalize code to uppercase

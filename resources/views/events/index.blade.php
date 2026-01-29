@@ -167,6 +167,18 @@
               </dd>
             </div>
             <div>
+              <dt>Código</dt>
+              <dd>
+                @if($apt->message_code)
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-400">
+                    {{ $apt->message_code }}
+                  </span>
+                @else
+                  <span class="text-yellow-400 text-xs">Sin código</span>
+                @endif
+              </dd>
+            </div>
+            <div>
               <dt>Recordatorio</dt>
               <dd>{{ $apt->reminder_sent_at ? $apt->reminder_sent_at->diffForHumans() : '—' }}</dd>
             </div>

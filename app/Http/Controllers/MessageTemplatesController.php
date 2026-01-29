@@ -57,6 +57,16 @@ class MessageTemplatesController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'code' => [
+                'nullable',
+                'string',
+                'max:20',
+                'alpha_num',
+                Rule::unique('message_templates')->where(function ($query) use ($request) {
+                    return $query->where('user_id', Auth::id())
+                                 ->where('channel', $request->channel);
+                }),
+            ],
             'channel' => ['required', Rule::in(['email', 'sms'])],
             'subject' => 'nullable|required_if:channel,email|string|max:255',
             'body' => 'required|string',
@@ -65,6 +75,10 @@ class MessageTemplatesController extends Controller
 
         $validated['user_id'] = Auth::id();
         $validated['is_default'] = $request->boolean('is_default');
+        // Normalize code to uppercase
+        if (!empty($validated['code'])) {
+            $validated['code'] = strtoupper($validated['code']);
+        }
 
         // If setting as default, unset other defaults for this channel
         if ($validated['is_default']) {
@@ -109,12 +123,26 @@ class MessageTemplatesController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'code' => [
+                'nullable',
+                'string',
+                'max:20',
+                'alpha_num',
+                Rule::unique('message_templates')->where(function ($query) use ($template) {
+                    return $query->where('user_id', Auth::id())
+                                 ->where('channel', $template->channel);
+                })->ignore($template->id),
+            ],
             'subject' => 'nullable|required_if:channel,email|string|max:255',
             'body' => 'required|string',
             'is_default' => 'boolean',
         ]);
 
         $validated['is_default'] = $request->boolean('is_default');
+        // Normalize code to uppercase
+        if (!empty($validated['code'])) {
+            $validated['code'] = strtoupper($validated['code']);
+        }
 
         // If setting as default, unset other defaults for this channel
         if ($validated['is_default'] && !$template->is_default) {

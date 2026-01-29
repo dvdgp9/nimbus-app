@@ -3,33 +3,27 @@
 namespace App\Mail;
 
 use App\Models\Appointment;
-use App\Models\Patient;
-use App\Models\Shortlink;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class AppointmentStatusChanged extends Mailable
+class FirstSessionDetected extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public ?string $acknowledgeUrl = null;
+    public string $createPatientUrl;
 
     /**
      * Create a new message instance.
      */
     public function __construct(
         public Appointment $appointment,
-        public Patient $patient,
-        public string $action // 'confirmed' or 'cancelled'
+        public array $patientData,
+        array $prefillParams
     ) {
-        // Generate acknowledge link for cancellations
-        if ($action === 'cancelled') {
-            $shortlink = Shortlink::createForAppointment($appointment, 'acknowledge_cancellation');
-            $this->acknowledgeUrl = $shortlink->getUrl();
-        }
+        $this->createPatientUrl = route('patients.create', $prefillParams);
     }
 
     /**
@@ -37,10 +31,8 @@ class AppointmentStatusChanged extends Mailable
      */
     public function envelope(): Envelope
     {
-        $actionText = $this->action === 'confirmed' ? 'confirmó' : 'canceló';
-        
         return new Envelope(
-            subject: "✅ {$this->patient->name} {$actionText} su cita",
+            subject: "🆕 Nueva primera sesión detectada - {$this->appointment->formatted_date}",
         );
     }
 
@@ -50,7 +42,7 @@ class AppointmentStatusChanged extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.appointment-status-changed',
+            view: 'emails.first-session-detected',
         );
     }
 

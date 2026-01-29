@@ -15,11 +15,19 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withSchedule(function (Schedule $schedule): void {
-        // Send appointment reminders every 30 minutes
-        $schedule->command('nimbus:send-reminders')
-                 ->everyThirtyMinutes()
+        // Sync calendars every 15 minutes
+        $schedule->command('nimbus:sync-calendars')
+                 ->everyFifteenMinutes()
                  ->withoutOverlapping()
-                 ->runInBackground();
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/calendar-sync.log'));
+
+        // Send appointment reminders every 15 minutes (48h before appointment)
+        $schedule->command('nimbus:send-reminders --hours=48')
+                 ->everyFifteenMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/reminders.log'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -89,8 +89,9 @@ class GoogleCalendarService
             // Try to find or create patient from attendee info
             $patientId = $this->findOrCreatePatient($e, $userId);
             
-            // Extract message type from description (#MSG1, #MSG2, #MSG3, #MSG4)
-            $messageType = $this->extractMessageType($e['description']);
+            // Extract message code from title (last word after last space)
+            // Example: "EVTA Cita 1 BP" → code is "BP"
+            $messageCode = $this->extractMessageCode($e['summary']);
             
             DB::table('appointments')->updateOrInsert(
                 ['google_event_id' => $e['google_event_id']],
@@ -103,7 +104,7 @@ class GoogleCalendarService
                     'timezone' => $e['timezone'],
                     'hangout_link' => $e['hangout_link'],
                     'patient_id' => $patientId,
-                    'message_type' => $messageType,
+                    'message_code' => $messageCode,
                     'last_synced_at' => now(),
                     'raw_payload' => json_encode($e['raw']),
                     'updated_at' => now(),
@@ -191,19 +192,32 @@ class GoogleCalendarService
     }
 
     /**
-     * Extract message type from event description
-     * Looks for #MSG1, #MSG2, #MSG3, or #MSG4 tags
-     * Returns integer 1-4 or null if not found
+     * Extract message code from event title (last word after last space)
+     * Example: "EVTA Cita 1 BP" → returns "BP"
+     * Example: "Primera sesión Psicóloga Laura" → returns "LAURA" (will be used for first session detection)
+     * Returns uppercase code or null if title is empty/single word
      */
-    private function extractMessageType(?string $description): ?int
+    private function extractMessageCode(?string $title): ?string
     {
-        if (!$description) {
+        if (!$title) {
             return null;
         }
         
-        // Search for #MSG followed by a number (1-4)
-        if (preg_match('/#MSG([1-4])\b/i', $description, $matches)) {
-            return (int) $matches[1];
+        $title = trim($title);
+        
+        // Split by spaces and get the last word
+        $parts = preg_split('/\s+/', $title);
+        
+        if (count($parts) < 2) {
+            // Single word title, no code
+            return null;
+        }
+        
+        $lastWord = end($parts);
+        
+        // Only return if it looks like a code (alphanumeric, 1-10 chars)
+        if (preg_match('/^[A-Za-z0-9]{1,10}$/', $lastWord)) {
+            return strtoupper($lastWord);
         }
         
         return null;
@@ -217,5 +231,89 @@ class GoogleCalendarService
             return Carbon::parse($value.' 00:00:00')->toDateTimeString();
         }
         return Carbon::parse($value)->toDateTimeString();
+    }
+
+    /**
+     * Update event title in Google Calendar (prepend prefix)
+     * Used for adding "OK - " when patient confirms
+     */
+    public function updateEventTitle(string $calendarId, string $eventId, string $prefix, ?string $accountEmail = null, ?int $userId = null): bool
+    {
+        try {
+            $client = GoogleClientFactory::make($accountEmail, $userId);
+            $service = new GoogleCalendar($client);
+
+            // Get current event
+            $event = $service->events->get($calendarId, $eventId);
+            $currentTitle = $event->getSummary() ?? '';
+
+            // Don't add prefix if already present
+            if (str_starts_with($currentTitle, $prefix)) {
+                return true;
+            }
+
+            // Update title with prefix
+            $event->setSummary($prefix . $currentTitle);
+            $service->events->update($calendarId, $eventId, $event);
+
+            return true;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to update event title: " . $e->getMessage(), [
+                'calendar_id' => $calendarId,
+                'event_id' => $eventId,
+                'prefix' => $prefix,
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Move event to a different date in Google Calendar
+     * Used for moving cancelled appointments to Sunday
+     */
+    public function moveEventToDate(string $calendarId, string $eventId, Carbon $newDate, ?string $accountEmail = null, ?int $userId = null): bool
+    {
+        try {
+            $client = GoogleClientFactory::make($accountEmail, $userId);
+            $service = new GoogleCalendar($client);
+
+            // Get current event
+            $event = $service->events->get($calendarId, $eventId);
+            
+            $start = $event->getStart();
+            $end = $event->getEnd();
+            
+            // Calculate new start/end times keeping the same time of day
+            if ($start->getDateTime()) {
+                // DateTime event (has time)
+                $originalStart = Carbon::parse($start->getDateTime());
+                $originalEnd = Carbon::parse($end->getDateTime());
+                $duration = $originalStart->diffInMinutes($originalEnd);
+
+                $newStart = $newDate->copy()->setTime($originalStart->hour, $originalStart->minute);
+                $newEnd = $newStart->copy()->addMinutes($duration);
+
+                $start->setDateTime($newStart->toRfc3339String());
+                $end->setDateTime($newEnd->toRfc3339String());
+            } else {
+                // All-day event
+                $start->setDate($newDate->format('Y-m-d'));
+                $end->setDate($newDate->format('Y-m-d'));
+            }
+
+            $event->setStart($start);
+            $event->setEnd($end);
+            
+            $service->events->update($calendarId, $eventId, $event);
+
+            return true;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to move event: " . $e->getMessage(), [
+                'calendar_id' => $calendarId,
+                'event_id' => $eventId,
+                'new_date' => $newDate->toDateString(),
+            ]);
+            return false;
+        }
     }
 }

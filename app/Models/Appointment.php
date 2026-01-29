@@ -23,7 +23,8 @@ class Appointment extends Model
         'timezone',
         'hangout_link',
         'patient_id',
-        'message_type',
+        'message_code',
+        'first_session_notified',
         'nimbus_status',
         'reminder_sent_at',
         'confirmed_at',
@@ -110,8 +111,48 @@ class Appointment extends Model
             'confirmed_at' => now(),
         ]);
 
+        // Update event title in Google Calendar with "OK - " prefix
+        $this->updateGoogleCalendarTitle('OK - ');
+
         // Notify professional
         $this->notifyProfessional('confirmed');
+    }
+
+    /**
+     * Update the event title in Google Calendar
+     */
+    protected function updateGoogleCalendarTitle(string $prefix): void
+    {
+        if (!$this->google_event_id || !$this->calendar_id || !$this->patient) {
+            return;
+        }
+
+        $user = $this->patient->user;
+        if (!$user) {
+            return;
+        }
+
+        // Get the user's Google account email
+        $googleToken = \Illuminate\Support\Facades\DB::table('google_tokens')
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$googleToken) {
+            return;
+        }
+
+        try {
+            $calendarService = app(\App\Services\GoogleCalendarService::class);
+            $calendarService->updateEventTitle(
+                $this->calendar_id,
+                $this->google_event_id,
+                $prefix,
+                $googleToken->account_email,
+                $user->id
+            );
+        } catch (\Exception $e) {
+            Log::error("Failed to update Google Calendar event title: " . $e->getMessage());
+        }
     }
 
     public function cancel(): void

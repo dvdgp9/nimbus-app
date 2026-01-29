@@ -10,6 +10,7 @@ class MessageTemplate extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'code',
         'channel',
         'subject',
         'body',

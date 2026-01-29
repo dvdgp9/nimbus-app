@@ -352,6 +352,20 @@
             El paciente canceló la cita. Puedes contactarle para reprogramar si es necesario. 📞
           @endif
         </p>
+
+        @if($action === 'cancelled' && $acknowledgeUrl)
+        {{-- Acknowledge Cancellation Button --}}
+        <div style="margin-top:32px;text-align:center;">
+          <p style="color:rgba(255,255,255,0.6);font-size:13px;margin-bottom:16px;">
+            Haz clic en el botón para confirmar que has visto esta cancelación.<br>
+            <span style="color:rgba(255,255,255,0.4);font-size:12px;">La cita se moverá automáticamente al domingo para tu referencia.</span>
+          </p>
+          <a href="{{ $acknowledgeUrl }}" 
+             style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;box-shadow:0 4px 12px rgba(245,158,11,0.3);">
+            ✓ He visto esta cancelación
+          </a>
+        </div>
+        @endif
       </div>
       
       {{-- Footer --}}

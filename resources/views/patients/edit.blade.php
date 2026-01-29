@@ -98,31 +98,10 @@
         <p class="mt-1 text-xs text-white/40">Formato internacional recomendado: +34XXXXXXXXX</p>
       </div>
 
-      {{-- Preferred Channel --}}
-      <div>
-        <label for="preferred_channel" class="block text-sm font-medium text-white/80 mb-2">
-          Canal preferido <span class="text-red-400">*</span>
-        </label>
-        <select 
-          id="preferred_channel" 
-          name="preferred_channel" 
-          required
-          class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-500/50 transition @error('preferred_channel') border-red-500/50 @enderror"
-        >
-          <option value="email" {{ old('preferred_channel', $patient->preferred_channel) === 'email' ? 'selected' : '' }}>Email</option>
-          <option value="sms" {{ old('preferred_channel', $patient->preferred_channel) === 'sms' ? 'selected' : '' }}>SMS</option>
-        </select>
-        @error('preferred_channel')
-          <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
-        @enderror
-      </div>
-
-      {{-- Consent Section --}}
+      {{-- Channels Section --}}
       <div class="border-t border-white/10 pt-6">
-        <h3 class="text-white font-semibold mb-2">Consentimientos</h3>
-        @if($patient->consent_date)
-          <p class="text-xs text-white/40 mb-4">Consentimiento dado el {{ $patient->consent_date->format('d/m/Y') }}</p>
-        @endif
+        <h3 class="text-white font-semibold mb-2">Canales de envío</h3>
+        <p class="text-xs text-white/40 mb-4">Se enviarán recordatorios por todos los canales activos</p>
         <div class="space-y-3">
           <label class="flex items-center gap-3 cursor-pointer">
             <input 
@@ -132,7 +111,10 @@
               {{ old('consent_email', $patient->consent_email) ? 'checked' : '' }}
               class="w-4 h-4 bg-white/5 border border-white/20 rounded text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
             >
-            <span class="text-white/80">Consentimiento para envío de emails</span>
+            <div>
+              <span class="text-white/80">Email</span>
+              <span class="text-xs text-white/40 ml-2">Recordatorio con enlaces de confirmación</span>
+            </div>
           </label>
 
           <label class="flex items-center gap-3 cursor-pointer">
@@ -143,7 +125,10 @@
               {{ old('consent_sms', $patient->consent_sms) ? 'checked' : '' }}
               class="w-4 h-4 bg-white/5 border border-white/20 rounded text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
             >
-            <span class="text-white/80">Consentimiento para envío de SMS</span>
+            <div>
+              <span class="text-white/80">SMS</span>
+              <span class="text-xs text-white/40 ml-2">Mensaje corto de recordatorio</span>
+            </div>
           </label>
         </div>
       </div>
