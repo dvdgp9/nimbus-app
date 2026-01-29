@@ -101,7 +101,7 @@ class GoogleCalendarService
                     'description' => $e['description'],
                     'start_at' => $this->toDateTime($e['start_at']),
                     'end_at' => $this->toDateTime($e['end_at']),
-                    'timezone' => $e['timezone'],
+                    'timezone' => $e['timezone'] ?? 'Europe/Madrid', // Default timezone for all-day events
                     'hangout_link' => $e['hangout_link'],
                     'patient_id' => $patientId,
                     'message_code' => $messageCode,
