@@ -8,6 +8,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 class TemplatedReminder extends Mailable
@@ -49,6 +50,22 @@ class TemplatedReminder extends Mailable
                 'emailBody' => $this->emailBody,
                 'confirmUrl' => $this->links['confirmUrl'],
                 'cancelUrl' => $this->links['cancelUrl'],
+            ],
+        );
+    }
+
+    /**
+     * Get the message headers.
+     */
+    public function headers(): Headers
+    {
+        return new Headers(
+            text: [
+                'X-Priority' => '1',
+                'X-MSMail-Priority' => 'High',
+                'Importance' => 'High',
+                'X-Mailer' => 'Nimbus Appointment System',
+                'List-Unsubscribe' => '<mailto:' . config('mail.from.address') . '?subject=unsubscribe>',
             ],
         );
     }
