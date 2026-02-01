@@ -92,6 +92,14 @@ class NotificationService
     {
         $professional = $patient->user;
         
+        // Build WhatsApp reschedule link
+        $whatsappNumber = '34621072649';
+        $message = sprintf(
+            'Hola! Me gustaría cambiar la cita del %s',
+            $appointment->start_at->format('d/m')
+        );
+        $rescheduleLink = 'https://wa.me/' . $whatsappNumber . '?text=' . urlencode($message);
+        
         return [
             'patient_name' => $patient->name,
             'patient_first_name' => explode(' ', $patient->name)[0],
@@ -102,6 +110,7 @@ class NotificationService
             'professional_name' => $professional?->name ?? 'Tu profesional',
             'confirm_link' => $confirmLink->getUrl(),
             'cancel_link' => $cancelLink->getUrl(),
+            'reschedule_link' => $rescheduleLink,
             'hangout_link' => $appointment->hangout_link ?? '',
         ];
     }
