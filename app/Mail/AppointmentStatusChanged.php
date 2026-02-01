@@ -9,6 +9,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 class AppointmentStatusChanged extends Mailable
@@ -41,6 +42,7 @@ class AppointmentStatusChanged extends Mailable
         
         return new Envelope(
             subject: "✅ {$this->patient->name} {$actionText} su cita",
+            from: config('mail.from.address'),
         );
     }
 
@@ -51,6 +53,22 @@ class AppointmentStatusChanged extends Mailable
     {
         return new Content(
             view: 'emails.appointment-status-changed',
+        );
+    }
+
+    /**
+     * Get the message headers.
+     */
+    public function headers(): Headers
+    {
+        return new Headers(
+            text: [
+                'X-Priority' => '1',
+                'X-MSMail-Priority' => 'High',
+                'Importance' => 'High',
+                'X-Mailer' => 'Nimbus Appointment System',
+                'List-Unsubscribe' => '<mailto:' . config('mail.from.address') . '?subject=unsubscribe>',
+            ],
         );
     }
 
