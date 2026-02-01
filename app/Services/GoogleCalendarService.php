@@ -182,6 +182,9 @@ class GoogleCalendarService
         // Trim whitespace
         $title = trim($title);
         
+        // Remove "OK - " prefix if present (from confirmed appointments)
+        $title = preg_replace('/^OK\s*-\s*/i', '', $title);
+        
         // Try to match a code at the beginning
         // Pattern: alphanumeric code followed by separator (-, :, space) or end of string
         if (preg_match('/^([A-Za-z0-9]+)(?:\s*[-:]\s*|\s+|$)/', $title, $matches)) {
