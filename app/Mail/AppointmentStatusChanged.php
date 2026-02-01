@@ -38,10 +38,12 @@ class AppointmentStatusChanged extends Mailable
      */
     public function envelope(): Envelope
     {
+        $icon = $this->action === 'confirmed' ? '✅' : '❌';
         $actionText = $this->action === 'confirmed' ? 'confirmó' : 'canceló';
+        $patientCode = $this->patient->code ?? 'SIN-CODIGO';
         
         return new Envelope(
-            subject: "✅ {$this->patient->name} {$actionText} su cita",
+            subject: "{$icon} [{$patientCode}] {$actionText} su cita",
             from: config('mail.from.address'),
         );
     }
