@@ -35,10 +35,12 @@
             <h1 class="text-2xl md:text-3xl font-semibold text-white mb-2">{{ $title }}</h1>
 
             <p class="text-white/70 mb-4">
-              @if($isConfirmed)
+              @if(isset($action) && $action === 'confirm')
                 Nos vemos en la cita. Gracias por confirmar tu asistencia.
-              @elseif($isCancelled)
+              @elseif(isset($action) && $action === 'cancel')
                 Tu cita ha sido cancelada. Espero que nos veamos pronto.
+              @elseif(isset($action) && $action === 'acknowledge_cancellation')
+                Has confirmado la cancelación. La cita se ha registrado como cancelada y se ha movido al domingo en tu calendario.
               @else
                 {{ $message }}
               @endif

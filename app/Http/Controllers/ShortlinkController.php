@@ -59,6 +59,7 @@ class ShortlinkController extends Controller
                     'title' => '✅ Cita confirmada',
                     'message' => 'Tu cita ha sido confirmada exitosamente.',
                     'appointment' => $appointment,
+                    'action' => 'confirm',
                 ]);
 
             case 'cancel':
@@ -68,6 +69,7 @@ class ShortlinkController extends Controller
                     'title' => '❌ Cita cancelada',
                     'message' => 'Tu cita ha sido cancelada. Te confirmaremos la cancelación por email.',
                     'appointment' => $appointment,
+                    'action' => 'cancel',
                 ]);
 
             case 'acknowledge_cancellation':
@@ -130,10 +132,9 @@ class ShortlinkController extends Controller
 
         return view('shortlinks.success', [
             'title' => '✓ Cancelación confirmada',
-            'message' => $moved 
-                ? "Has confirmado la cancelación. La cita se ha movido al domingo {$sunday->format('d/m/Y')} en tu calendario."
-                : "Has confirmado la cancelación. La cita se ha registrado como cancelada.",
+            'message' => 'Has confirmado la cancelación. La cita se ha registrado como cancelada y se ha movido al domingo en tu calendario.',
             'appointment' => $appointment,
+            'action' => 'acknowledge_cancellation',
         ]);
     }
 }
