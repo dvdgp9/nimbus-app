@@ -78,7 +78,7 @@
           $status = $apt->nimbus_status;
           $borderClass = match ($status) {
               'confirmed' => 'border-emerald-400/60',   // verde
-              'cancelled' => 'border-red-400/60',       // rojo
+              'cancelled', 'cancelled_acknowledged' => 'border-red-400/60',       // rojo
               'reminder_sent' => 'border-amber-400/60', // amarillo (recordatorio enviado)
               'pending' => 'border-slate-300/40',       // gris claro (pendiente)
               default => 'border-slate-500/40',         // neutro para otros estados
@@ -159,10 +159,10 @@
               <dd>
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
                   {{ $apt->nimbus_status === 'confirmed' ? 'bg-green-500/20 text-green-400' : '' }}
-                  {{ $apt->nimbus_status === 'cancelled' ? 'bg-red-500/20 text-red-400' : '' }}
+                  {{ in_array($apt->nimbus_status, ['cancelled', 'cancelled_acknowledged']) ? 'bg-red-500/20 text-red-400' : '' }}
                   {{ $apt->nimbus_status === 'reminder_sent' ? 'bg-blue-500/20 text-blue-400' : '' }}
                   {{ $apt->nimbus_status === 'pending' ? 'bg-gray-500/20 text-gray-400' : '' }}">
-                  {{ ucfirst($apt->nimbus_status) }}
+                  {{ $apt->nimbus_status === 'cancelled_acknowledged' ? 'Cancelled' : ucfirst($apt->nimbus_status) }}
                 </span>
               </dd>
             </div>
