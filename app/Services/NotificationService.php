@@ -46,6 +46,7 @@ class NotificationService
         // Generate shortlinks (shared for all channels)
         $confirmLink = Shortlink::createForAppointment($appointment, 'confirm');
         $cancelLink = Shortlink::createForAppointment($appointment, 'cancel');
+        $rescheduleLink = Shortlink::createForAppointment($appointment, 'reschedule');
 
         // Build template data for dynamic fields
         $templateData = $this->buildTemplateData($appointment, $patient, $confirmLink, $cancelLink);
@@ -55,6 +56,7 @@ class NotificationService
             'patient' => $patient,
             'confirmUrl' => $confirmLink->getUrl(),
             'cancelUrl' => $cancelLink->getUrl(),
+            'rescheduleUrl' => $rescheduleLink->getUrl(),
             'templateData' => $templateData,
         ];
 
@@ -182,8 +184,13 @@ class NotificationService
                 // Send with custom template
                 Mail::to($patient->email)->send(new TemplatedReminder($appointment, $patient, $subject, $body, $data));
             } else {
-                // Send with default template
-                Mail::to($patient->email)->send(new AppointmentReminder($appointment, $patient, $data));
+                // Send with default template - pass links array with required keys
+                $links = [
+                    'confirmUrl' => $data['confirmUrl'],
+                    'cancelUrl' => $data['cancelUrl'],
+                    'rescheduleUrl' => $data['rescheduleUrl'],
+                ];
+                Mail::to($patient->email)->send(new AppointmentReminder($appointment, $patient, $links));
             }
             
             $communication->markAsSent();
