@@ -25,6 +25,7 @@ class Appointment extends Model
         'patient_id',
         'message_code',
         'first_session_notified',
+        'unknown_patient_notified',
         'nimbus_status',
         'reminder_sent_at',
         'confirmed_at',

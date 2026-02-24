@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\User;
 use App\Services\GoogleCalendarService;
 use App\Services\FirstSessionService;
+use App\Services\NotificationService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -30,7 +31,8 @@ class SyncCalendars extends Command
 
     public function __construct(
         private GoogleCalendarService $calendar,
-        private FirstSessionService $firstSessionService
+        private FirstSessionService $firstSessionService,
+        private NotificationService $notificationService
     ) {
         parent::__construct();
     }
@@ -112,6 +114,12 @@ class SyncCalendars extends Command
                     $this->info("   📧 Notified {$firstSessionsProcessed} first session(s)");
                 }
 
+                // Process unknown patient codes for this user
+                $unknownCodesProcessed = $this->processUnknownPatientCodes($account->user_id);
+                if ($unknownCodesProcessed > 0) {
+                    $this->info("   ⚠️ Notified {$unknownCodesProcessed} unknown patient code(s)");
+                }
+
             } catch (\Google\Service\Exception $e) {
                 $error = json_decode($e->getMessage(), true);
                 $errorCode = $error['error']['code'] ?? 'unknown';
@@ -187,6 +195,51 @@ class SyncCalendars extends Command
                 if ($this->firstSessionService->processFirstSession($appointment, $user)) {
                     $processed++;
                 }
+            }
+        }
+
+        return $processed;
+    }
+
+    /**
+     * Process appointments with unknown patient codes - detect and send notification emails
+     */
+    protected function processUnknownPatientCodes(int $userId): int
+    {
+        $user = User::find($userId);
+        if (!$user) {
+            return 0;
+        }
+
+        // Find appointments that:
+        // 1. Have no patient assigned
+        // 2. Have NOT been notified yet about unknown patient code
+        // 3. Are NOT first sessions (those are handled separately)
+        // 4. Belong to this user's calendars
+        $appointments = Appointment::whereNull('patient_id')
+            ->where('unknown_patient_notified', false)
+            ->where('start_at', '>', now()) // Only future appointments
+            ->where(function ($query) {
+                // Exclude first sessions
+                $query->where('summary', 'not like', '%' . FirstSessionService::FIRST_SESSION_TITLE . '%');
+            })
+            ->whereIn('calendar_id', function ($query) use ($userId) {
+                $query->select('calendar_id')
+                    ->from('connected_calendars')
+                    ->where('user_id', $userId)
+                    ->where('enabled', 1);
+            })
+            ->get();
+
+        $processed = 0;
+        foreach ($appointments as $appointment) {
+            // Check if there's a suggested patient code in the title
+            $suggestedCode = $appointment->suggested_patient_code;
+            
+            if ($suggestedCode) {
+                // There's a code but patient doesn't exist - notify
+                $this->notificationService->notifyUnknownPatientCode($appointment, $suggestedCode);
+                $processed++;
             }
         }
 

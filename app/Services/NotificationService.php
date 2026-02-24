@@ -9,6 +9,8 @@ use App\Models\Shortlink;
 use App\Models\MessageTemplate;
 use App\Mail\AppointmentReminder;
 use App\Mail\TemplatedReminder;
+use App\Mail\UnknownPatientCode;
+use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -23,7 +25,13 @@ class NotificationService
     public function sendReminder(Appointment $appointment): bool
     {
         if (!$appointment->patient) {
-            Log::warning("Appointment {$appointment->id} has no patient assigned");
+            // Check if there's a patient code that wasn't found
+            $suggestedCode = $appointment->suggested_patient_code;
+            if ($suggestedCode) {
+                $this->notifyUnknownPatientCode($appointment, $suggestedCode);
+            } else {
+                Log::warning("Appointment {$appointment->id} has no patient assigned and no code detected");
+            }
             return false;
         }
 
@@ -276,5 +284,58 @@ class NotificationService
             $data['confirmUrl'],
             $data['cancelUrl']
         );
+    }
+
+    /**
+     * Notify the professional that a patient code was not found
+     */
+    public function notifyUnknownPatientCode(Appointment $appointment, string $patientCode): void
+    {
+        // Get the user who owns this calendar
+        $user = $this->getUserFromAppointment($appointment);
+        
+        if (!$user) {
+            Log::warning("Cannot notify about unknown patient code: no user found for appointment {$appointment->id}");
+            return;
+        }
+
+        // Check if we already notified about this appointment (avoid spam)
+        if ($appointment->unknown_patient_notified) {
+            Log::info("Already notified about unknown patient code for appointment {$appointment->id}");
+            return;
+        }
+
+        try {
+            Mail::to($user->email)->send(new UnknownPatientCode($appointment, $patientCode));
+            
+            // Mark as notified to avoid sending multiple times
+            $appointment->update(['unknown_patient_notified' => true]);
+            
+            Log::info("Notified user {$user->id} about unknown patient code '{$patientCode}' for appointment {$appointment->id}");
+        } catch (Exception $e) {
+            Log::error("Failed to send unknown patient code notification: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get the user who owns the calendar for this appointment
+     */
+    protected function getUserFromAppointment(Appointment $appointment): ?User
+    {
+        if (!$appointment->calendar_id) {
+            return null;
+        }
+
+        // Find user via connected_calendars table
+        $userId = \Illuminate\Support\Facades\DB::table('connected_calendars')
+            ->where('calendar_id', $appointment->calendar_id)
+            ->where('enabled', 1)
+            ->value('user_id');
+
+        if (!$userId) {
+            return null;
+        }
+
+        return User::find($userId);
     }
 }
