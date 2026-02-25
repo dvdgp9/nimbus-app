@@ -71,12 +71,12 @@ class Appointment extends Model
                      ->orderBy('start_at', 'asc');
     }
 
-    public function scopeNeedsReminder($query, int $hoursAhead = 48)
+    public function scopeNeedsReminder($query, int $hoursBefore = 48, int $windowMinutes = 15)
     {
         $now = now();
-        // Minimum 48h buffer - don't send reminders for appointments less than 48h away
-        $startWindow = $now->copy()->addHours(48);
-        $endWindow = $now->copy()->addHours(48 + $hoursAhead);
+        // Send reminders around an exact offset (default: 48h before appointment)
+        $startWindow = $now->copy()->addHours($hoursBefore);
+        $endWindow = $startWindow->copy()->addMinutes($windowMinutes);
         
         return $query->whereBetween('start_at', [$startWindow, $endWindow])
                      ->where('nimbus_status', 'pending')
