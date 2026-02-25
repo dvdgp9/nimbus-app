@@ -10,6 +10,7 @@ use App\Http\Controllers\ShortlinkController;
 use App\Http\Controllers\PatientsController;
 use App\Http\Controllers\SmsTestController;
 use App\Http\Controllers\MessageTemplatesController;
+use App\Http\Controllers\OnboardingController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -33,8 +34,21 @@ Route::get('/terms-of-service', function () {
 Route::get('/auth/google/login', [GoogleAuthController::class, 'loginRedirect'])->name('google.login');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 
-// Protected routes (require authentication)
-Route::middleware(['auth'])->group(function () {
+// Onboarding routes (auth required, but no onboarding check)
+Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(function () {
+    Route::get('/', [OnboardingController::class, 'index'])->name('index');
+    Route::post('/next', [OnboardingController::class, 'nextStep'])->name('next');
+    Route::post('/previous', [OnboardingController::class, 'previousStep'])->name('previous');
+    Route::get('/step/{step}', [OnboardingController::class, 'goToStep'])->name('step');
+    Route::post('/import-csv', [OnboardingController::class, 'importCsv'])->name('import-csv');
+    Route::post('/add-patient', [OnboardingController::class, 'addPatient'])->name('add-patient');
+    Route::delete('/patient/{patient}', [OnboardingController::class, 'deletePatient'])->name('delete-patient');
+    Route::post('/complete', [OnboardingController::class, 'complete'])->name('complete');
+    Route::post('/skip', [OnboardingController::class, 'skip'])->name('skip');
+});
+
+// Protected routes (require authentication + onboarding completed)
+Route::middleware(['auth', \App\Http\Middleware\EnsureOnboardingCompleted::class])->group(function () {
     Route::get('/', HomeController::class)->name('home');
     
     Route::get('/dashboard', function () {

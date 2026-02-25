@@ -75,6 +75,13 @@ class SyncCalendars extends Command
         $failedAccounts = 0;
 
         foreach ($accounts as $account) {
+            // Skip users who haven't completed onboarding
+            $user = User::find($account->user_id);
+            if (!$user || !$user->hasCompletedOnboarding()) {
+                $this->line("⏭️  User #{$account->user_id} - Skipping (onboarding not completed)");
+                continue;
+            }
+
             $this->line("👤 User #{$account->user_id} ({$account->account_email})");
 
             // Get enabled calendar IDs for this user/account

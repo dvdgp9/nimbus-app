@@ -37,7 +37,27 @@ class User extends Authenticatable
         'password',
         'google_id',
         'avatar',
+        'onboarding_step',
+        'onboarding_completed_at',
     ];
+
+    /**
+     * Check if onboarding is completed
+     */
+    public function hasCompletedOnboarding(): bool
+    {
+        return $this->onboarding_completed_at !== null;
+    }
+
+    /**
+     * Mark onboarding as completed
+     */
+    public function completeOnboarding(): void
+    {
+        $this->update([
+            'onboarding_completed_at' => now(),
+        ]);
+    }
 
     /**
      * The attributes that should be hidden for serialization.
