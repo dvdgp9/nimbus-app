@@ -495,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Field buttons
   insertFieldBtns.forEach(btn => {
     btn.addEventListener('click', function() {
-      const field = '{{' + this.dataset.field + '}}';
+      const field = '@{{' + this.dataset.field + '}}';
       insertAtCursor(field);
     });
   });
