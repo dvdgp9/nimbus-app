@@ -48,8 +48,9 @@ class TemplatedReminder extends Mailable
                 'appointment' => $this->appointment,
                 'patient' => $this->patient,
                 'emailBody' => $this->emailBody,
-                'confirmUrl' => $this->links['confirmUrl'],
-                'cancelUrl' => $this->links['cancelUrl'],
+                'confirmUrl' => $this->links['confirmUrl'] ?? '#',
+                'cancelUrl' => $this->links['cancelUrl'] ?? '#',
+                'rescheduleUrl' => $this->links['rescheduleUrl'] ?? '#',
             ],
         );
     }

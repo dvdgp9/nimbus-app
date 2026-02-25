@@ -36,7 +36,6 @@
       font-size:15px;
       line-height:1.8;
       color:rgba(255,255,255,0.85);
-      white-space: pre-wrap;
     }
     .footer { 
       padding:24px 28px;
@@ -48,6 +47,10 @@
     }
     a { color:#00d4ff; text-decoration:none; }
     a:hover { text-decoration:underline; }
+    .btn { display:inline-block; padding:14px 28px; border-radius:10px; font-weight:600; font-size:15px; text-decoration:none; margin:8px 4px; }
+    .btn-confirm { background:linear-gradient(135deg,#10b981,#059669); color:#ffffff; }
+    .btn-cancel { background:linear-gradient(135deg,#ef4444,#dc2626); color:#ffffff; }
+    .btn-reschedule { background:linear-gradient(135deg,#f59e0b,#d97706); color:#ffffff; }
   </style>
 </head>
 <body>
@@ -62,8 +65,33 @@
         <div class="subtitle">Recordatorio de Cita</div>
       </div>
       
-      {{-- Content - User's custom template --}}
-      <div class="content">{!! nl2br(e($emailBody)) !!}</div>
+      {{-- Content - User's custom template with button support --}}
+      @php
+        // Process the email body to convert button markers to actual buttons
+        $processedBody = e($emailBody);
+        
+        // Replace button markers with actual HTML buttons
+        $processedBody = str_replace(
+          '[BOTON_CONFIRMAR]',
+          '</p><div style="text-align:center;margin:16px 0;"><a href="' . ($confirmUrl ?? '#') . '" class="btn btn-confirm" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;border-radius:10px;font-weight:600;font-size:15px;text-decoration:none;">✅ Confirmar cita</a></div><p style="margin:0;">',
+          $processedBody
+        );
+        $processedBody = str_replace(
+          '[BOTON_CANCELAR]',
+          '</p><div style="text-align:center;margin:16px 0;"><a href="' . ($cancelUrl ?? '#') . '" class="btn btn-cancel" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#ffffff;border-radius:10px;font-weight:600;font-size:15px;text-decoration:none;">❌ Cancelar cita</a></div><p style="margin:0;">',
+          $processedBody
+        );
+        $processedBody = str_replace(
+          '[BOTON_CAMBIAR]',
+          '</p><div style="text-align:center;margin:16px 0;"><a href="' . ($rescheduleUrl ?? '#') . '" class="btn btn-reschedule" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#ffffff;border-radius:10px;font-weight:600;font-size:15px;text-decoration:none;">📅 Cambiar cita</a></div><p style="margin:0;">',
+          $processedBody
+        );
+        
+        // Convert newlines to <br> for regular text
+        $processedBody = nl2br($processedBody);
+      @endphp
+      
+      <div class="content">{!! $processedBody !!}</div>
       
       {{-- Footer --}}
       <div class="footer">
