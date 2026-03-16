@@ -359,11 +359,17 @@ class OnboardingController extends Controller
             return [];
         }
 
-        $existingCodes = MessageTemplate::query()
+        $completedCodes = MessageTemplate::query()
             ->where('user_id', auth()->id())
             ->whereNotNull('code')
-            ->pluck('code')
-            ->map(fn ($code) => strtoupper($code))
+            ->get(['code', 'channel'])
+            ->groupBy(fn ($template) => strtoupper($template->code))
+            ->filter(function ($templates) {
+                $channels = $templates->pluck('channel')->unique();
+
+                return $channels->contains('email') && $channels->contains('sms');
+            })
+            ->keys()
             ->all();
 
         return Appointment::query()
@@ -375,7 +381,7 @@ class OnboardingController extends Controller
             ->filter()
             ->map(fn ($code) => strtoupper($code))
             ->unique()
-            ->reject(fn ($code) => in_array($code, $existingCodes, true))
+            ->reject(fn ($code) => in_array($code, $completedCodes, true))
             ->values()
             ->all();
     }
