@@ -371,7 +371,7 @@ class OnboardingController extends Controller
             ->where('start_at', '>=', now())
             ->where('start_at', '<=', now()->addDays(30))
             ->get()
-            ->pluck('suggested_patient_code')
+            ->pluck('suggested_message_code')
             ->filter()
             ->map(fn ($code) => strtoupper($code))
             ->unique()

@@ -189,6 +189,11 @@ class Appointment extends Model
         return $this->extractPatientCode($this->summary ?? '');
     }
 
+    public function getSuggestedMessageCodeAttribute(): ?string
+    {
+        return $this->extractMessageCode($this->summary ?? '');
+    }
+
     public function getSuggestedPatientNameAttribute(): ?string
     {
         return $this->extractPatientName($this->summary ?? '');
