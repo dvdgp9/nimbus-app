@@ -227,6 +227,28 @@ class Appointment extends Model
         return null;
     }
 
+    protected function extractMessageCode(?string $title): ?string
+    {
+        if (!$title) {
+            return null;
+        }
+
+        $title = trim($title);
+        $parts = preg_split('/\s+/', $title);
+
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $lastWord = end($parts);
+
+        if (preg_match('/^[A-Za-z0-9]{1,10}$/', $lastWord)) {
+            return strtoupper($lastWord);
+        }
+
+        return null;
+    }
+
     /**
      * Notify professional about patient action
      */
