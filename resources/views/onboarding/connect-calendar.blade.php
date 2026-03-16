@@ -23,8 +23,8 @@
         <p class="text-white/60">Nimbus sincronizará tus citas automáticamente desde Google Calendar</p>
       </div>
 
-      @if($isConnected)
-        {{-- Already connected --}}
+      @if($hasConfiguredCalendars)
+        {{-- Calendars configured --}}
         <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 mb-8">
           <div class="flex items-center justify-center gap-3 mb-3">
             <div class="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center">
@@ -32,9 +32,9 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <span class="text-emerald-300 font-semibold text-lg">¡Calendario conectado!</span>
+            <span class="text-emerald-300 font-semibold text-lg">¡Calendarios listos!</span>
           </div>
-          <p class="text-emerald-300/70 text-sm">Tu cuenta de Google está vinculada correctamente</p>
+          <p class="text-emerald-300/70 text-sm">Tu cuenta de Google está conectada y ya has seleccionado qué calendarios usar</p>
         </div>
 
         <div class="bg-white/5 rounded-xl p-6 text-left mb-8">
@@ -50,12 +50,39 @@
             </li>
             <li class="flex items-start gap-2">
               <span class="text-cyan-400">•</span>
-              Enviará recordatorios automáticos 48h antes de cada cita
+              Detectará automáticamente los códigos presentes en tus citas
             </li>
           </ul>
         </div>
+      @elseif($hasGoogleAccount)
+        <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6 mb-8">
+          <div class="flex items-center justify-center gap-3 mb-3">
+            <div class="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <span class="text-amber-300 font-semibold text-lg">Cuenta conectada, calendarios pendientes</span>
+          </div>
+          <p class="text-amber-300/70 text-sm">
+            Tu cuenta <strong class="text-amber-200">{{ $connectedAccountEmail }}</strong> ya está conectada, pero aún no has elegido qué calendarios usar.
+          </p>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-6 mb-8 text-left">
+          <h3 class="text-white font-semibold mb-3">Siguiente acción</h3>
+          <p class="text-white/70 text-sm mb-4">
+            Selecciona los calendarios que Nimbus debe leer. La sincronización inicial solo servirá para detectar códigos y preparar plantillas, <strong class="text-white">sin activar envíos automáticos todavía</strong>.
+          </p>
+          <a href="{{ route('calendars.index', ['account' => $connectedAccountEmail]) }}" class="btn btn-primary inline-flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            Seleccionar calendarios
+          </a>
+        </div>
       @else
-        {{-- Not connected --}}
+        {{-- No Google account connected yet --}}
         <div class="bg-white/5 rounded-xl p-6 mb-8 text-left">
           <h3 class="text-white font-semibold mb-3">¿Qué permisos necesita Nimbus?</h3>
           <ul class="space-y-2 text-white/70 text-sm">
@@ -103,7 +130,7 @@
 
         <form action="{{ route('onboarding.next') }}" method="POST">
           @csrf
-          <button type="submit" class="btn btn-primary" {{ !$isConnected ? 'disabled' : '' }}>
+          <button type="submit" class="btn btn-primary" {{ !$hasConfiguredCalendars ? 'disabled' : '' }}>
             Siguiente
             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
@@ -112,7 +139,7 @@
         </form>
       </div>
 
-      @if(!$isConnected)
+      @if(!$hasConfiguredCalendars)
         <div class="mt-4">
           <form action="{{ route('onboarding.next') }}" method="POST" class="inline">
             @csrf

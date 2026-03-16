@@ -150,6 +150,10 @@ class GoogleAuthController extends Controller
             ]
         );
 
+        if (auth()->user() && !auth()->user()->hasCompletedOnboarding()) {
+            return redirect()->route('onboarding.step', ['step' => 3]);
+        }
+
         return view('google.connected', [
             'email' => $email,
         ]);

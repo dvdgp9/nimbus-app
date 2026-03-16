@@ -20,8 +20,14 @@ class EnsureOnboardingCompleted
                 return $next($request);
             }
             
-            // Allow Google OAuth callback during onboarding
-            if ($request->routeIs('google.callback') || $request->routeIs('google.redirect')) {
+            // Allow routes needed during onboarding
+            if (
+                $request->routeIs('google.callback') ||
+                $request->routeIs('google.redirect') ||
+                $request->routeIs('google.connect') ||
+                $request->routeIs('calendars.*') ||
+                $request->routeIs('templates.*')
+            ) {
                 return $next($request);
             }
 

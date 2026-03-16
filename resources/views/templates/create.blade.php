@@ -3,11 +3,11 @@
 <div class="page-container max-w-5xl">
   {{-- Page Header --}}
   <div class="mb-8">
-    <a href="{{ route('templates.index', ['channel' => $channel]) }}" class="text-cyan-400 hover:text-cyan-300 transition inline-flex items-center gap-1 mb-4">
+    <a href="{{ request('from_onboarding') ? route('onboarding.step', ['step' => 4]) : route('templates.index', ['channel' => $channel]) }}" class="text-cyan-400 hover:text-cyan-300 transition inline-flex items-center gap-1 mb-4">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
       </svg>
-      Volver a plantillas
+      {{ request('from_onboarding') ? 'Volver al onboarding' : 'Volver a plantillas' }}
     </a>
     <div class="page-header">
       <h1>Nueva Plantilla de {{ $channel === 'email' ? 'Email' : 'SMS' }}</h1>
@@ -19,6 +19,9 @@
   <form method="POST" action="{{ route('templates.store') }}" class="space-y-6" id="template-form">
     @csrf
     <input type="hidden" name="channel" value="{{ $channel }}">
+    @if(request('from_onboarding'))
+      <input type="hidden" name="from_onboarding" value="1">
+    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {{-- Left Column: Editor --}}
@@ -61,7 +64,7 @@
               type="text" 
               id="code" 
               name="code" 
-              value="{{ old('code') }}"
+              value="{{ old('code', request('code')) }}"
               maxlength="20"
               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition uppercase @error('code') border-red-500/50 @enderror"
               placeholder="Ej: BP, RC, ST"

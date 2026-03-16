@@ -20,12 +20,51 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
         </div>
-        <h1 class="text-2xl md:text-3xl font-bold text-white mb-2">Configuración de recordatorios</h1>
-        <p class="text-white/60">Revisa las plantillas predeterminadas para tus mensajes</p>
+        <h1 class="text-2xl md:text-3xl font-bold text-white mb-2">Crear plantillas a partir de tus códigos</h1>
+        <p class="text-white/60">Nimbus ya ha revisado tus citas y te propone los códigos detectados. Todavía no se enviará ningún recordatorio.</p>
       </div>
 
       {{-- Default Templates Info --}}
       <div class="space-y-6">
+        <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-5">
+          <div class="flex items-start gap-3">
+            <span class="text-cyan-400 text-xl">🧭</span>
+            <div>
+              <p class="text-cyan-300 font-semibold">Estado actual del onboarding</p>
+              <p class="text-cyan-200/70 text-sm mt-1">
+                La sincronización inicial solo ha servido para leer tus citas y detectar códigos. Los mecanismos automáticos seguirán desactivados hasta que completes este proceso.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-white font-semibold">Códigos detectados en tu calendario</h3>
+            <span class="text-xs bg-white/10 text-white/60 px-2 py-1 rounded">{{ count($suggestedCodes) }} sugerencias</span>
+          </div>
+
+          @if(count($suggestedCodes) > 0)
+            <div class="space-y-3">
+              @foreach($suggestedCodes as $code)
+                <div class="flex flex-wrap items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-3">
+                  <span class="font-mono text-sm text-white bg-black/20 rounded px-2 py-1">{{ $code }}</span>
+                  <a href="{{ route('templates.create', ['channel' => 'email', 'code' => $code, 'from_onboarding' => 1]) }}"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-300 text-sm transition">
+                    Crear email
+                  </a>
+                  <a href="{{ route('templates.create', ['channel' => 'sms', 'code' => $code, 'from_onboarding' => 1]) }}"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 text-sm transition">
+                    Crear SMS
+                  </a>
+                </div>
+              @endforeach
+            </div>
+          @else
+            <p class="text-white/50 text-sm">No se han detectado códigos nuevos. Puedes crear plantillas generales ahora o configurarlas más adelante.</p>
+          @endif
+        </div>
+
         {{-- Email Templates --}}
         <div class="bg-white/5 rounded-xl p-6 border border-white/10">
           <div class="flex items-center justify-between mb-4">
@@ -58,7 +97,7 @@
             <p class="text-white/50 text-sm">No hay plantillas de email configuradas. Se usará la plantilla del sistema.</p>
           @endif
 
-          <a href="{{ route('templates.create', ['channel' => 'email']) }}" target="_blank" 
+          <a href="{{ route('templates.create', ['channel' => 'email', 'from_onboarding' => 1]) }}"
             class="mt-4 inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -99,7 +138,7 @@
             <p class="text-white/50 text-sm">No hay plantillas de SMS configuradas. Se usará la plantilla del sistema.</p>
           @endif
 
-          <a href="{{ route('templates.create', ['channel' => 'sms']) }}" target="_blank" 
+          <a href="{{ route('templates.create', ['channel' => 'sms', 'from_onboarding' => 1]) }}"
             class="mt-4 inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -115,8 +154,7 @@
             <div>
               <p class="text-amber-300 font-semibold">Recordatorios automáticos</p>
               <p class="text-amber-200/70 text-sm mt-1">
-                Nimbus enviará recordatorios <strong>48 horas antes</strong> de cada cita. 
-                Puedes personalizar esto más adelante en la configuración.
+                Cuando completes el onboarding, Nimbus ya tendrá tus calendarios, pacientes y plantillas preparados para empezar a trabajar con seguridad.
               </p>
             </div>
           </div>

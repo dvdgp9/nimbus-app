@@ -90,6 +90,12 @@ class MessageTemplatesController extends Controller
 
         $template = MessageTemplate::create($validated);
 
+        if ($request->boolean('from_onboarding')) {
+            return redirect()
+                ->route('onboarding.step', ['step' => 4])
+                ->with('status', 'Plantilla creada correctamente');
+        }
+
         return redirect()
             ->route('templates.index', ['channel' => $template->channel])
             ->with('status', 'Plantilla creada correctamente');

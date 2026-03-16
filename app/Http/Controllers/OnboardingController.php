@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
+use App\Models\MessageTemplate;
 use App\Models\Patient;
+use App\Services\GoogleCalendarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class OnboardingController extends Controller
 {
@@ -18,6 +20,10 @@ class OnboardingController extends Controller
     const STEP_CONNECT_CALENDAR = 3;
     const STEP_CONFIGURE = 4;
     const STEP_COMPLETE = 5;
+
+    public function __construct(
+        private GoogleCalendarService $calendar
+    ) {}
 
     /**
      * Show current onboarding step
@@ -43,15 +49,18 @@ class OnboardingController extends Controller
                 'patients' => $user->patients()->orderBy('name')->get(),
             ]),
             self::STEP_CONNECT_CALENDAR => view('onboarding.connect-calendar', [
-                'isConnected' => $this->hasConnectedCalendar(),
+                'hasGoogleAccount' => $this->hasConnectedGoogleAccount(),
+                'hasConfiguredCalendars' => $this->hasConfiguredCalendars(),
+                'connectedAccountEmail' => $this->getConnectedAccountEmail(),
             ]),
             self::STEP_CONFIGURE => view('onboarding.configure', [
                 'emailTemplates' => $user->messageTemplates()->where('channel', 'email')->get(),
                 'smsTemplates' => $user->messageTemplates()->where('channel', 'sms')->get(),
+                'suggestedCodes' => $this->getSuggestedCodes(),
             ]),
             self::STEP_COMPLETE => view('onboarding.complete', [
                 'patientsCount' => $user->patients()->count(),
-                'isConnected' => $this->hasConnectedCalendar(),
+                'isConnected' => $this->hasConfiguredCalendars(),
             ]),
             default => view('onboarding.welcome'),
         };
@@ -64,6 +73,11 @@ class OnboardingController extends Controller
     {
         $user = auth()->user();
         $currentStep = $user->onboarding_step ?: self::STEP_WELCOME;
+
+        if ($currentStep === self::STEP_CONNECT_CALENDAR && $this->hasConfiguredCalendars()) {
+            $this->syncInitialAppointments();
+        }
+
         $nextStep = min($currentStep + 1, self::STEP_COMPLETE);
 
         $user->update(['onboarding_step' => $nextStep]);
@@ -283,11 +297,87 @@ class OnboardingController extends Controller
     /**
      * Check if user has connected a Google Calendar
      */
-    protected function hasConnectedCalendar(): bool
+    protected function hasConnectedGoogleAccount(): bool
     {
         return DB::table('google_tokens')
             ->where('user_id', auth()->id())
             ->exists();
+    }
+
+    protected function hasConfiguredCalendars(): bool
+    {
+        return DB::table('connected_calendars')
+            ->where('user_id', auth()->id())
+            ->where('enabled', 1)
+            ->exists();
+    }
+
+    protected function getConnectedAccountEmail(): ?string
+    {
+        return DB::table('google_tokens')
+            ->where('user_id', auth()->id())
+            ->orderByDesc('updated_at')
+            ->value('account_email');
+    }
+
+    protected function syncInitialAppointments(): void
+    {
+        $accountEmail = $this->getConnectedAccountEmail();
+        if (!$accountEmail) {
+            return;
+        }
+
+        $calendarIds = DB::table('connected_calendars')
+            ->where('user_id', auth()->id())
+            ->where('account_email', $accountEmail)
+            ->where('enabled', 1)
+            ->pluck('calendar_id')
+            ->all();
+
+        if (empty($calendarIds)) {
+            return;
+        }
+
+        try {
+            $hoursAhead = 720;
+            $events = $this->calendar->listUpcomingEvents($accountEmail, $hoursAhead, $calendarIds, auth()->id());
+            $this->calendar->syncAppointments($events, auth()->id(), $calendarIds, $hoursAhead);
+        } catch (\Exception $e) {
+            Log::warning('Initial onboarding sync failed: ' . $e->getMessage());
+        }
+    }
+
+    protected function getSuggestedCodes(): array
+    {
+        $calendarIds = DB::table('connected_calendars')
+            ->where('user_id', auth()->id())
+            ->where('enabled', 1)
+            ->pluck('calendar_id')
+            ->all();
+
+        if (empty($calendarIds)) {
+            return [];
+        }
+
+        $existingCodes = MessageTemplate::query()
+            ->where('user_id', auth()->id())
+            ->whereNotNull('code')
+            ->pluck('code')
+            ->map(fn ($code) => strtoupper($code))
+            ->all();
+
+        return Appointment::query()
+            ->whereIn('calendar_id', $calendarIds)
+            ->where('start_at', '>=', now())
+            ->where('start_at', '<=', now()->addDays(30))
+            ->get()
+            ->pluck('suggested_patient_code')
+            ->filter()
+            ->map(fn ($code) => strtoupper($code))
+            ->unique()
+            ->reject(fn ($code) => in_array($code, $existingCodes, true))
+            ->values()
+            ->all();
     }
 
     /**
