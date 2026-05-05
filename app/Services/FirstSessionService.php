@@ -12,16 +12,30 @@ use Illuminate\Support\Facades\DB;
 class FirstSessionService
 {
     /**
-     * Title pattern to detect first sessions
+     * Canonical title (used only as human-readable reference)
      */
     public const FIRST_SESSION_TITLE = 'Primera sesión Psicóloga Laura';
 
     /**
-     * Check if an event is a first session based on title
+     * Broad SQL LIKE pattern to pre-filter candidate first sessions.
+     * Uses wildcards between "primera" and "sesi" to tolerate variations
+     * such as "PRIMERA - sesión", "primera sesion", etc.
      */
-    public function isFirstSession(string $title): bool
+    public const FIRST_SESSION_SQL_LIKE = '%primera%sesi%';
+
+    /**
+     * Check if an event title looks like a first session.
+     * Accepts variations: case, accents, separators between "primera" and "sesión",
+     * and optional suffix (e.g. "Psicóloga Laura", "- Laura", etc.).
+     */
+    public function isFirstSession(?string $title): bool
     {
-        return str_contains($title, self::FIRST_SESSION_TITLE);
+        if (!$title) {
+            return false;
+        }
+
+        // Match "primera" + any separators/whitespace + "sesión/sesion"
+        return (bool) preg_match('/primera[\s\-:–—]*sesi[oó]n/iu', $title);
     }
 
     /**

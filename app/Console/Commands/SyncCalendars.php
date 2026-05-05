@@ -179,15 +179,8 @@ class SyncCalendars extends Command
 
         // Find appointments that look like first sessions and haven't been notified
         $appointments = Appointment::where('first_session_notified', false)
-            ->where('summary', 'like', '%' . FirstSessionService::FIRST_SESSION_TITLE . '%')
-            ->whereHas('patient', function ($query) use ($userId) {
-                $query->where('user_id', $userId);
-            }, '=', 0) // No patient assigned yet
-            ->orWhere(function ($query) use ($userId) {
-                $query->where('first_session_notified', false)
-                    ->where('summary', 'like', '%' . FirstSessionService::FIRST_SESSION_TITLE . '%')
-                    ->whereNull('patient_id');
-            })
+            ->where('summary', 'like', FirstSessionService::FIRST_SESSION_SQL_LIKE)
+            ->whereNull('patient_id')
             ->whereIn('calendar_id', function ($query) use ($userId) {
                 $query->select('calendar_id')
                     ->from('connected_calendars')
@@ -228,7 +221,7 @@ class SyncCalendars extends Command
             ->where('start_at', '>', now()) // Only future appointments
             ->where(function ($query) {
                 // Exclude first sessions
-                $query->where('summary', 'not like', '%' . FirstSessionService::FIRST_SESSION_TITLE . '%');
+                $query->where('summary', 'not like', FirstSessionService::FIRST_SESSION_SQL_LIKE);
             })
             ->whereIn('calendar_id', function ($query) use ($userId) {
                 $query->select('calendar_id')

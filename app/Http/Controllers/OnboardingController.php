@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\MessageTemplate;
 use App\Models\Patient;
+use App\Services\FirstSessionService;
 use App\Services\GoogleCalendarService;
 use App\Services\PatientImportService;
 use Illuminate\Http\Request;
@@ -24,7 +25,8 @@ class OnboardingController extends Controller
 
     public function __construct(
         private GoogleCalendarService $calendar,
-        private PatientImportService $patientImporter
+        private PatientImportService $patientImporter,
+        private FirstSessionService $firstSessions
     ) {}
 
     /**
@@ -312,6 +314,7 @@ class OnboardingController extends Controller
             ->where('start_at', '>=', now())
             ->where('start_at', '<=', now()->addDays(30))
             ->get()
+            ->reject(fn ($appointment) => $this->firstSessions->isFirstSession($appointment->summary))
             ->pluck('suggested_message_code')
             ->filter()
             ->map(fn ($code) => strtoupper($code))
