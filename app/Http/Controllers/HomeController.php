@@ -16,26 +16,55 @@ class HomeController extends Controller
         $user = Auth::user();
         
         // Connection status
-        $connectedCount = DB::table('google_tokens')->count();
-        $latest = DB::table('google_tokens')->orderByDesc('updated_at')->first();
+        $connectedCount = DB::table('google_tokens')
+            ->where('user_id', $user?->id)
+            ->count();
+        $latest = DB::table('google_tokens')
+            ->where('user_id', $user?->id)
+            ->orderByDesc('updated_at')
+            ->first();
         $account = $latest->account_email ?? null;
         $isConnected = $connectedCount > 0;
         
         // Calendar stats
         $enabledCalendars = $account
-            ? DB::table('connected_calendars')->where('account_email', $account)->where('enabled', 1)->count()
+            ? DB::table('connected_calendars')
+                ->where('user_id', $user?->id)
+                ->where('account_email', $account)
+                ->where('enabled', 1)
+                ->count()
             : 0;
+
+        $calendarIds = DB::table('connected_calendars')
+            ->where('user_id', $user?->id)
+            ->where('enabled', 1)
+            ->pluck('calendar_id')
+            ->all();
         
-        // Upcoming appointments (next 48h)
-        $upcomingAppointments = Appointment::with('patient')
+        // Upcoming appointments (next 7 days)
+        $dashboardDaysAhead = 7;
+        $upcomingAppointmentsQuery = Appointment::with('patient')
+            ->when($calendarIds, function ($query) use ($calendarIds) {
+                $query->whereIn('calendar_id', $calendarIds);
+            })
             ->where('start_at', '>=', now())
-            ->where('start_at', '<', now()->addHours(48))
+            ->where('start_at', '<', now()->addDays($dashboardDaysAhead));
+        
+        $upcomingAppointments = (clone $upcomingAppointmentsQuery)
             ->orderBy('start_at')
-            ->limit(5)
+            ->limit(10)
             ->get();
         
-        $upcomingCount = Appointment::where('start_at', '>=', now())
-            ->where('start_at', '<', now()->addHours(48))
+        $upcomingCount = (clone $upcomingAppointmentsQuery)
+            ->count();
+
+        $upcomingWithReminderCount = (clone $upcomingAppointmentsQuery)
+            ->whereNotNull('reminder_sent_at')
+            ->count();
+
+        $upcomingPendingReminderCount = (clone $upcomingAppointmentsQuery)
+            ->whereNull('reminder_sent_at')
+            ->whereNotIn('nimbus_status', ['cancelled', 'cancelled_acknowledged'])
             ->count();
         
         // Today's stats
@@ -55,7 +84,11 @@ class HomeController extends Controller
         $hasTemplates = $emailTemplate || $smsTemplate;
         
         // Last sync
-        $lastSyncedAt = DB::table('appointments')->max('last_synced_at');
+        $lastSyncedAt = DB::table('appointments')
+            ->when($calendarIds, function ($query) use ($calendarIds) {
+                $query->whereIn('calendar_id', $calendarIds);
+            })
+            ->max('last_synced_at');
         
         // Patients count
         $patientsCount = $user?->patients()->count() ?? 0;
@@ -64,8 +97,11 @@ class HomeController extends Controller
             'isConnected',
             'account',
             'enabledCalendars',
+            'dashboardDaysAhead',
             'upcomingAppointments',
             'upcomingCount',
+            'upcomingWithReminderCount',
+            'upcomingPendingReminderCount',
             'remindersSentToday',
             'confirmedThisWeek',
             'emailTemplate',

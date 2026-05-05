@@ -45,12 +45,16 @@
       <div class="value {{ $isConnected ? 'text-green-400' : '' }}">{{ $isConnected ? 'Conectado' : 'Sin conectar' }}</div>
     </div>
     <div class="stat-card">
-      <div class="label">Enviados hoy</div>
-      <div class="value">{{ $remindersSentToday }}</div>
+      <div class="label">Próx. {{ $dashboardDaysAhead }} días</div>
+      <div class="value">{{ $upcomingCount }}</div>
     </div>
     <div class="stat-card">
-      <div class="label">Confirmados (sem)</div>
-      <div class="value">{{ $confirmedThisWeek }}</div>
+      <div class="label">Recordatorios pendientes</div>
+      <div class="value">{{ $upcomingPendingReminderCount }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Enviados hoy</div>
+      <div class="value">{{ $remindersSentToday }}</div>
     </div>
     <div class="stat-card">
       <div class="label">Pacientes</div>
@@ -66,7 +70,7 @@
           <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
           </svg>
-          Próximas citas
+          Próximas citas · {{ $dashboardDaysAhead }} días
         </h2>
         <a href="{{ route('events.index', ['account' => $account]) }}" class="text-cyan-400 hover:text-cyan-300 text-sm font-medium transition">
           Ver todas ({{ $upcomingCount }}) →
@@ -78,14 +82,25 @@
           <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
           </svg>
-          <p>No hay citas en las próximas 48 horas</p>
+          <p>No hay citas en los próximos {{ $dashboardDaysAhead }} días</p>
         </div>
       @else
+        <div class="mb-3 flex flex-wrap items-center gap-2 text-xs text-white/50">
+          <span>{{ $upcomingAppointments->count() }} visibles</span>
+          <span class="text-white/25">·</span>
+          <span>{{ $upcomingWithReminderCount }} con recordatorio enviado</span>
+          <span class="text-white/25">·</span>
+          <span>{{ $upcomingPendingReminderCount }} pendientes</span>
+        </div>
         <div class="space-y-3">
           @foreach($upcomingAppointments as $apt)
-            <div class="flex items-center gap-4 p-3 bg-white/5 rounded-lg hover:bg-white/[0.07] transition">
+            @php
+              $isReminderSent = filled($apt->reminder_sent_at);
+              $isCancelled = in_array($apt->nimbus_status, ['cancelled', 'cancelled_acknowledged'], true);
+            @endphp
+            <div class="flex flex-col gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/[0.07] transition sm:flex-row sm:items-center sm:gap-4">
               {{-- Time --}}
-              <div class="text-center min-w-[60px]">
+              <div class="text-left min-w-[72px] sm:text-center">
                 <div class="text-xs text-white/50">
                   {{ $apt->start_at->isToday() ? 'Hoy' : ($apt->start_at->isTomorrow() ? 'Mañana' : $apt->start_at->format('d/m')) }}
                 </div>
@@ -93,7 +108,7 @@
               </div>
 
               {{-- Divider --}}
-              <div class="w-px h-10 bg-white/10"></div>
+              <div class="hidden w-px h-10 bg-white/10 sm:block"></div>
 
               {{-- Info --}}
               <div class="flex-1 min-w-0">
@@ -112,7 +127,7 @@
               </div>
 
               {{-- Status --}}
-              <div class="flex-shrink-0">
+              <div class="flex flex-wrap gap-2 sm:justify-end sm:flex-shrink-0">
                 @if($apt->nimbus_status === 'confirmed')
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-300">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -132,6 +147,18 @@
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/10 text-white/60">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path></svg>
                     Pendiente
+                  </span>
+                @endif
+
+                @if($isReminderSent)
+                  <span title="Enviado {{ $apt->reminder_sent_at->format('d/m/Y H:i') }}" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-cyan-500/20 text-cyan-200">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8"></path></svg>
+                    Recordatorio enviado
+                  </span>
+                @elseif(!$isCancelled)
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-200">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    Sin recordatorio
                   </span>
                 @endif
               </div>
