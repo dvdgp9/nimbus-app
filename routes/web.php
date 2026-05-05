@@ -41,6 +41,7 @@ Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(fu
     Route::post('/previous', [OnboardingController::class, 'previousStep'])->name('previous');
     Route::get('/step/{step}', [OnboardingController::class, 'goToStep'])->name('step');
     Route::post('/import-csv', [OnboardingController::class, 'importCsv'])->name('import-csv');
+    Route::post('/import-paste', [OnboardingController::class, 'importPaste'])->name('import-paste');
     Route::post('/add-patient', [OnboardingController::class, 'addPatient'])->name('add-patient');
     Route::delete('/patient/{patient}', [OnboardingController::class, 'deletePatient'])->name('delete-patient');
     Route::post('/complete', [OnboardingController::class, 'complete'])->name('complete');
@@ -73,6 +74,9 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureOnboardingCompleted::class
     Route::post('/calendars', [CalendarsController::class, 'store'])->name('calendars.store');
 
     // Patients management
+    Route::get('/patients/import', [PatientsController::class, 'importForm'])->name('patients.import.form');
+    Route::post('/patients/import/csv', [PatientsController::class, 'importCsv'])->name('patients.import.csv');
+    Route::post('/patients/import/paste', [PatientsController::class, 'importPaste'])->name('patients.import.paste');
     Route::resource('patients', PatientsController::class);
 
     // Email

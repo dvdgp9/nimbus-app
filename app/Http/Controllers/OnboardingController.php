@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\MessageTemplate;
 use App\Models\Patient;
 use App\Services\GoogleCalendarService;
+use App\Services\PatientImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +23,8 @@ class OnboardingController extends Controller
     const STEP_COMPLETE = 5;
 
     public function __construct(
-        private GoogleCalendarService $calendar
+        private GoogleCalendarService $calendar,
+        private PatientImportService $patientImporter
     ) {}
 
     /**
@@ -121,119 +123,49 @@ class OnboardingController extends Controller
             'csv_file' => 'required|file|mimes:csv,txt|max:2048',
         ]);
 
-        $file = $request->file('csv_file');
-        $handle = fopen($file->getRealPath(), 'r');
+        $report = $this->patientImporter->importFromFile(
+            $request->file('csv_file')->getRealPath(),
+            auth()->user()
+        );
 
-        if (!$handle) {
-            return back()->withErrors(['csv_file' => 'No se pudo leer el archivo']);
-        }
-
-        $user = auth()->user();
-        $imported = 0;
-        $errors = [];
-        $lineNumber = 0;
-
-        // Skip header if present
-        $firstLine = fgetcsv($handle, 1000, ',');
-        $lineNumber++;
-
-        // Check if first line looks like a header
-        $isHeader = $this->looksLikeHeader($firstLine);
-        if (!$isHeader) {
-            // First line is data, process it
-            $result = $this->processPatientRow($firstLine, $user, $lineNumber);
-            if ($result === true) {
-                $imported++;
-            } elseif ($result !== false) {
-                $errors[] = $result;
-            }
-        }
-
-        // Process remaining rows
-        while (($row = fgetcsv($handle, 1000, ',')) !== false) {
-            $lineNumber++;
-            
-            if (count($row) < 2) {
-                continue; // Skip empty or incomplete rows
-            }
-
-            $result = $this->processPatientRow($row, $user, $lineNumber);
-            if ($result === true) {
-                $imported++;
-            } elseif ($result !== false) {
-                $errors[] = $result;
-            }
-        }
-
-        fclose($handle);
-
-        $message = "Se importaron {$imported} pacientes correctamente.";
-        if (count($errors) > 0) {
-            $message .= " " . count($errors) . " filas con errores.";
-        }
-
-        return back()->with('success', $message)->with('import_errors', $errors);
+        return back()->with($this->flashFromReport($report));
     }
 
     /**
-     * Check if row looks like a CSV header
+     * Import patients from pasted text (TSV/CSV)
      */
-    protected function looksLikeHeader(array $row): bool
+    public function importPaste(Request $request)
     {
-        $headerKeywords = ['codigo', 'code', 'nombre', 'name', 'email', 'correo', 'telefono', 'phone'];
-        $firstCell = strtolower(trim($row[0] ?? ''));
+        $request->validate([
+            'paste' => 'required|string|max:100000',
+        ]);
 
-        foreach ($headerKeywords as $keyword) {
-            if (str_contains($firstCell, $keyword)) {
-                return true;
-            }
-        }
+        $report = $this->patientImporter->importFromPaste(
+            $request->input('paste'),
+            auth()->user()
+        );
 
-        return false;
+        return back()->with($this->flashFromReport($report));
     }
 
     /**
-     * Process a single patient row from CSV
+     * Build flash data from an import report
      */
-    protected function processPatientRow(array $row, $user, int $lineNumber): bool|string
+    protected function flashFromReport(array $report): array
     {
-        // Expected format: code, name, email, phone (phone optional)
-        $code = strtoupper(trim($row[0] ?? ''));
-        $name = trim($row[1] ?? '');
-        $email = trim($row[2] ?? '');
-        $phone = trim($row[3] ?? '');
-
-        // Validate required fields
-        if (empty($code) || empty($name)) {
-            return "Línea {$lineNumber}: Código y nombre son obligatorios";
+        $summary = "Se crearon {$report['created']} pacientes.";
+        if (count($report['duplicates']) > 0) {
+            $summary .= ' ' . count($report['duplicates']) . ' duplicados ignorados.';
+        }
+        if (count($report['ignored']) > 0) {
+            $summary .= ' ' . count($report['ignored']) . ' filas con errores.';
         }
 
-        // Check for duplicate code
-        if ($user->patients()->where('code', $code)->exists()) {
-            return "Línea {$lineNumber}: El código '{$code}' ya existe";
-        }
-
-        // Validate email if provided
-        if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return "Línea {$lineNumber}: Email inválido '{$email}'";
-        }
-
-        try {
-            Patient::create([
-                'user_id' => $user->id,
-                'code' => $code,
-                'name' => $name,
-                'email' => $email ?: null,
-                'phone' => $phone ?: null,
-                'consent_email' => !empty($email),
-                'consent_sms' => !empty($phone),
-            ]);
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error("Error importing patient at line {$lineNumber}: " . $e->getMessage());
-            return "Línea {$lineNumber}: Error al guardar";
-        }
+        return [
+            'success' => $summary,
+            'import_duplicates' => $report['duplicates'],
+            'import_errors' => $report['ignored'],
+        ];
     }
 
     /**
@@ -256,14 +188,17 @@ class OnboardingController extends Controller
             return back()->withErrors(['code' => 'Este código ya existe']);
         }
 
+        $phone = $this->patientImporter->normalizePhone($validated['phone'] ?? null);
+
         Patient::create([
             'user_id' => $user->id,
             'code' => $code,
             'name' => $validated['name'],
             'email' => $validated['email'] ?? null,
-            'phone' => $validated['phone'] ?? null,
+            'phone' => $phone ?: null,
+            'preferred_channel' => 'email',
             'consent_email' => !empty($validated['email']),
-            'consent_sms' => !empty($validated['phone']),
+            'consent_sms' => !empty($phone),
         ]);
 
         return back()->with('success', 'Paciente añadido correctamente');

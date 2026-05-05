@@ -3,11 +3,75 @@
 namespace App\Http\Controllers;
 
 use App\Models\Patient;
+use App\Services\PatientImportService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class PatientsController extends Controller
 {
+    public function __construct(
+        private PatientImportService $patientImporter
+    ) {}
+
+    /**
+     * Show import screen (CSV + paste)
+     */
+    public function importForm()
+    {
+        return view('patients.import');
+    }
+
+    /**
+     * Handle CSV upload import
+     */
+    public function importCsv(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
+        ]);
+
+        $report = $this->patientImporter->importFromFile(
+            $request->file('csv_file')->getRealPath(),
+            auth()->user()
+        );
+
+        return redirect()->route('patients.import.form')->with($this->flashFromReport($report));
+    }
+
+    /**
+     * Handle pasted CSV/TSV import
+     */
+    public function importPaste(Request $request)
+    {
+        $request->validate([
+            'paste' => 'required|string|max:100000',
+        ]);
+
+        $report = $this->patientImporter->importFromPaste(
+            $request->input('paste'),
+            auth()->user()
+        );
+
+        return redirect()->route('patients.import.form')->with($this->flashFromReport($report));
+    }
+
+    protected function flashFromReport(array $report): array
+    {
+        $summary = "Se crearon {$report['created']} pacientes.";
+        if (count($report['duplicates']) > 0) {
+            $summary .= ' ' . count($report['duplicates']) . ' duplicados ignorados.';
+        }
+        if (count($report['ignored']) > 0) {
+            $summary .= ' ' . count($report['ignored']) . ' filas con errores.';
+        }
+
+        return [
+            'status' => $summary,
+            'import_duplicates' => $report['duplicates'],
+            'import_errors' => $report['ignored'],
+        ];
+    }
+
     /**
      * Display a listing of patients with search
      */

@@ -29,10 +29,21 @@
         </div>
       @endif
 
-      @if(session('import_errors'))
+      @if(session('import_duplicates') && count(session('import_duplicates')) > 0)
+        <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6">
+          <p class="text-amber-300 font-semibold mb-2">Duplicados ignorados:</p>
+          <ul class="text-amber-300/80 text-sm space-y-1 max-h-40 overflow-y-auto">
+            @foreach(session('import_duplicates') as $dup)
+              <li>{{ $dup }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
+
+      @if(session('import_errors') && count(session('import_errors')) > 0)
         <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
           <p class="text-red-300 font-semibold mb-2">Errores durante la importación:</p>
-          <ul class="text-red-300/80 text-sm space-y-1">
+          <ul class="text-red-300/80 text-sm space-y-1 max-h-40 overflow-y-auto">
             @foreach(session('import_errors') as $error)
               <li>{{ $error }}</li>
             @endforeach
@@ -41,45 +52,69 @@
       @endif
 
       <div class="grid md:grid-cols-2 gap-6">
-        {{-- CSV Import --}}
+        {{-- CSV / Paste Import --}}
         <div class="bg-white/5 rounded-xl p-6 border border-white/10">
           <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            Importar desde CSV
+            Importar CSV o pegar columnas
           </h3>
 
-          <form action="{{ route('onboarding.import-csv') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <div class="mb-4">
-              <label class="block text-sm text-white/60 mb-2">Formato del archivo:</label>
-              <code class="block bg-black/30 rounded-lg p-3 text-xs text-cyan-300 font-mono">
-                código,nombre,email,teléfono<br>
-                ABC,María García,maria@email.com,612345678<br>
-                XYZ,Juan López,juan@email.com,698765432
-              </code>
+          <div x-data="{ tab: 'csv' }">
+            <div class="flex gap-2 mb-4">
+              <button type="button" @click="tab = 'csv'" :class="tab === 'csv' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-white/60'" class="px-3 py-1.5 rounded-lg text-sm transition">Subir CSV</button>
+              <button type="button" @click="tab = 'paste'" :class="tab === 'paste' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-white/60'" class="px-3 py-1.5 rounded-lg text-sm transition">Pegar desde Excel/Sheets</button>
             </div>
 
-            <div class="mb-4">
-              <input 
-                type="file" 
-                name="csv_file" 
-                accept=".csv,.txt"
-                class="w-full text-white/60 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30 file:cursor-pointer"
-              >
-              @error('csv_file')
-                <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
-              @enderror
+            <div x-show="tab === 'csv'">
+              <form action="{{ route('onboarding.import-csv') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-4">
+                  <label class="block text-sm text-white/60 mb-2">Formato del archivo:</label>
+                  <code class="block bg-black/30 rounded-lg p-3 text-xs text-cyan-300 font-mono">
+                    código,nombre,email,teléfono<br>
+                    ABC,María García,maria@email.com,612345678<br>
+                    XYZ,Juan López,juan@email.com,698765432
+                  </code>
+                </div>
+
+                <div class="mb-4">
+                  <input 
+                    type="file" 
+                    name="csv_file" 
+                    accept=".csv,.txt"
+                    class="w-full text-white/60 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30 file:cursor-pointer"
+                  >
+                  @error('csv_file')
+                    <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                  @enderror
+                </div>
+
+                <button type="submit" class="btn bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 w-full">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                  </svg>
+                  Importar CSV
+                </button>
+              </form>
             </div>
 
-            <button type="submit" class="btn bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 w-full">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-              </svg>
-              Importar CSV
-            </button>
-          </form>
+            <div x-show="tab === 'paste'" x-cloak>
+              <form action="{{ route('onboarding.import-paste') }}" method="POST">
+                @csrf
+                <p class="text-white/60 text-xs mb-2">Copia desde Excel o Google Sheets y pega aquí (columnas: código, nombre, email, teléfono). Se detecta el separador automáticamente.</p>
+                <textarea name="paste" rows="6" placeholder="código	nombre	email	teléfono&#10;ABC	María García	maria@email.com	612345678"
+                  class="w-full font-mono text-xs bg-black/30 border border-white/10 rounded-lg p-3 text-white/80 placeholder-white/30 focus:outline-none focus:border-cyan-500/50"></textarea>
+                @error('paste')
+                  <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                @enderror
+                <button type="submit" class="mt-3 btn bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 w-full">
+                  Importar pegado
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
 
         {{-- Manual Add --}}
