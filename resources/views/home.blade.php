@@ -90,13 +90,18 @@
           <span class="text-white/25">·</span>
           <span>{{ $upcomingWithReminderCount }} con recordatorio enviado</span>
           <span class="text-white/25">·</span>
-          <span>{{ $upcomingPendingReminderCount }} pendientes</span>
+          <span>{{ $upcomingPendingReminderCount }} pendientes de enviar</span>
+          @if($upcomingMissingPatientCount > 0)
+            <span class="text-white/25">·</span>
+            <span>{{ $upcomingMissingPatientCount }} sin paciente</span>
+          @endif
         </div>
         <div class="space-y-3">
           @foreach($upcomingAppointments as $apt)
             @php
               $isReminderSent = filled($apt->reminder_sent_at);
               $isCancelled = in_array($apt->nimbus_status, ['cancelled', 'cancelled_acknowledged'], true);
+              $canSendReminder = filled($apt->patient_id) && !$isCancelled;
             @endphp
             <div class="flex flex-col gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/[0.07] transition sm:flex-row sm:items-center sm:gap-4">
               {{-- Time --}}
@@ -135,8 +140,8 @@
                   </span>
                 @elseif($apt->nimbus_status === 'reminder_sent')
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300">
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8"></path></svg>
-                    Enviado
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path></svg>
+                    Esperando respuesta
                   </span>
                 @elseif($apt->nimbus_status === 'cancelled')
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-300">
@@ -146,7 +151,7 @@
                 @else
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/10 text-white/60">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path></svg>
-                    Pendiente
+                    Cita pendiente
                   </span>
                 @endif
 
@@ -155,10 +160,15 @@
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8"></path></svg>
                     Recordatorio enviado
                   </span>
+                @elseif(!$canSendReminder && !$isCancelled)
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-200">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>
+                    No enviable
+                  </span>
                 @elseif(!$isCancelled)
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-200">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                    Sin recordatorio
+                    Recordatorio pendiente
                   </span>
                 @endif
               </div>

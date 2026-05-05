@@ -64,6 +64,12 @@ class HomeController extends Controller
 
         $upcomingPendingReminderCount = (clone $upcomingAppointmentsQuery)
             ->whereNull('reminder_sent_at')
+            ->whereNotNull('patient_id')
+            ->whereNotIn('nimbus_status', ['cancelled', 'cancelled_acknowledged'])
+            ->count();
+
+        $upcomingMissingPatientCount = (clone $upcomingAppointmentsQuery)
+            ->whereNull('patient_id')
             ->whereNotIn('nimbus_status', ['cancelled', 'cancelled_acknowledged'])
             ->count();
         
@@ -102,6 +108,7 @@ class HomeController extends Controller
             'upcomingCount',
             'upcomingWithReminderCount',
             'upcomingPendingReminderCount',
+            'upcomingMissingPatientCount',
             'remindersSentToday',
             'confirmedThisWeek',
             'emailTemplate',
