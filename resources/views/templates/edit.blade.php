@@ -402,6 +402,9 @@
 document.addEventListener('DOMContentLoaded', function () {
   const isEmail = {{ $isEmail ? 'true' : 'false' }};
   const channel = isEmail ? 'email' : 'sms';
+  // Built via String.fromCharCode to avoid Blade interpreting these braces.
+  const OPEN_BRACES = String.fromCharCode(123, 123);
+  const CLOSE_BRACES = String.fromCharCode(125, 125);
   const csrf = '{{ csrf_token() }}';
   const previewUrl = '{{ route("templates.preview") }}';
   const sendTestUrl = '{{ route("templates.sendTest") }}';
@@ -448,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function detectVariables(text) {
     const used = new Set();
-    const re = /\{\{\s*([a-z_][a-z0-9_]*)\s*\}\}/gi;
+    const re = new RegExp('\\{\\{\\s*([a-z_][a-z0-9_]*)\\s*\\}\\}', 'gi');
     let m;
     while ((m = re.exec(text)) !== null) used.add(m[1]);
     Object.keys(buttonMarkerImpliesVar).forEach((marker) => {
@@ -466,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function () {
       used.forEach((v) => {
         const chip = document.createElement('span');
         chip.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono bg-white/5 border border-white/10 text-white/70';
-        chip.textContent = '{{ "{{" }}' + v + '{{ "}}" }}';
+        chip.textContent = OPEN_BRACES + v + CLOSE_BRACES;
         varsDetected.appendChild(chip);
       });
     }
@@ -480,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function () {
         missing.forEach((v) => {
           const chip = document.createElement('span');
           chip.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono bg-amber-500/10 border border-amber-500/30 text-amber-200';
-          chip.textContent = '{{ "{{" }}' + v + '{{ "}}" }}';
+          chip.textContent = OPEN_BRACES + v + CLOSE_BRACES;
           varsMissing.appendChild(chip);
         });
         varsMissingWrap.classList.remove('hidden');
@@ -488,18 +491,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // SMS local rendering (no server roundtrip)
+  // SMS local rendering (no server roundtrip).
+  // Regex built as strings so Blade does not parse them as expressions.
+  const smsSampleValues = {
+    'patient_first_name': 'María',
+    'patient_name': 'María García López',
+    'appointment_date': 'lunes 27 de enero de 2026',
+    'appointment_time': '10:00',
+    'appointment_summary': 'Sesión de terapia',
+    'professional_name': @json(auth()->user()->name ?? 'tu psicóloga'),
+    'confirm_link': 'nimbus.app/c/abc',
+    'cancel_link': 'nimbus.app/x/xyz',
+    'reschedule_link': 'wa.me/...'
+  };
   function applySampleSms(text) {
-    return text
-      .replace(/\{\{patient_first_name\}\}/g, 'María')
-      .replace(/\{\{patient_name\}\}/g, 'María García López')
-      .replace(/\{\{appointment_date\}\}/g, 'lunes 27 de enero de 2026')
-      .replace(/\{\{appointment_time\}\}/g, '10:00')
-      .replace(/\{\{appointment_summary\}\}/g, 'Sesión de terapia')
-      .replace(/\{\{professional_name\}\}/g, @json(auth()->user()->name ?? 'tu psicóloga'))
-      .replace(/\{\{confirm_link\}\}/g, 'nimbus.app/c/abc')
-      .replace(/\{\{cancel_link\}\}/g, 'nimbus.app/x/xyz')
-      .replace(/\{\{reschedule_link\}\}/g, 'wa.me/...');
+    let out = text;
+    for (const key in smsSampleValues) {
+      const re = new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g');
+      out = out.replace(re, smsSampleValues[key]);
+    }
+    return out;
   }
 
   function updateSmsPreview() {
@@ -572,7 +583,7 @@ document.addEventListener('DOMContentLoaded', function () {
     update();
   }
 
-  insertFieldBtns.forEach((btn) => btn.addEventListener('click', () => insertAtCursor('{{ "{{" }}' + btn.dataset.field + '{{ "}}" }}')));
+  insertFieldBtns.forEach((btn) => btn.addEventListener('click', () => insertAtCursor(OPEN_BRACES + btn.dataset.field + CLOSE_BRACES)));
   insertButtonBtns.forEach((btn) => btn.addEventListener('click', () => insertAtCursor('\n' + buttonTemplates[btn.dataset.buttonType] + '\n')));
 
   bodyField.addEventListener('input', update);
