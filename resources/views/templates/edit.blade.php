@@ -291,55 +291,77 @@
       {{-- Right Column: Live Preview --}}
       <div class="space-y-4">
         <div class="bg-white/5 rounded-xl border border-white/10 overflow-hidden sticky top-4">
-          <div class="px-6 py-4 border-b border-white/10 bg-white/5">
-            <h3 class="text-white font-semibold flex items-center gap-2">
-              <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-              </svg>
-              Vista previa
-              <span class="text-xs text-white/40 font-normal ml-auto">Así lo verá tu paciente</span>
-            </h3>
+          <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
+            <div>
+              <h3 class="text-white font-semibold text-sm tracking-tight">Vista previa</h3>
+              <p class="text-xs text-white/40 mt-0.5">Así lo recibirá tu paciente</p>
+            </div>
+
+            @if($isEmail)
+              <div class="inline-flex items-center bg-white/5 border border-white/10 rounded-md p-0.5" role="tablist" aria-label="Tamaño del dispositivo">
+                <button type="button" id="preview-desktop" data-active="true"
+                        class="px-2.5 py-1 text-xs rounded text-white/80 data-[active=true]:bg-white/10 data-[active=true]:text-white transition">
+                  Escritorio
+                </button>
+                <button type="button" id="preview-mobile" data-active="false"
+                        class="px-2.5 py-1 text-xs rounded text-white/60 data-[active=true]:bg-white/10 data-[active=true]:text-white transition">
+                  Móvil
+                </button>
+              </div>
+            @endif
           </div>
 
           @if($isEmail)
-            {{-- Email Preview --}}
-            <div class="p-4">
-              <div class="bg-[#0b1020] rounded-lg overflow-hidden border border-white/10 shadow-xl">
-                {{-- Email Header --}}
-                <div class="bg-gradient-to-r from-cyan-500 to-blue-500 px-5 py-4 text-center">
-                  <div class="text-white text-xl font-bold flex items-center justify-center gap-2">
-                    <span>☁️</span>
-                    <span>Nimbus</span>
-                  </div>
-                  <div class="text-white/80 text-xs uppercase tracking-wider mt-1">Recordatorio de Cita</div>
-                </div>
-                {{-- Email Subject --}}
-                <div class="px-5 py-3 border-b border-white/10 bg-white/5">
-                  <span class="text-white/40 text-xs">Asunto:</span>
-                  <span class="text-white/90 text-sm ml-2" id="preview-subject">{{ $template->parseSubject(['appointment_summary' => 'Sesión de terapia']) }}</span>
-                </div>
-                {{-- Email Body --}}
-                <div class="px-5 py-5 text-sm text-white/85 leading-relaxed" id="preview-body">
-                  Cargando vista previa...
-                </div>
-                {{-- Email Footer --}}
-                <div class="px-5 py-3 border-t border-white/10 bg-black/20 text-center">
-                  <p class="text-white/30 text-xs">Este correo fue enviado automáticamente por Nimbus</p>
-                </div>
+            {{-- Email Subject line (gmail-like) --}}
+            <div class="px-5 py-3 border-b border-white/10 bg-white/[0.03]">
+              <p class="text-[11px] uppercase tracking-wider text-white/40 mb-1">Asunto</p>
+              <p class="text-white/90 text-sm font-medium leading-snug truncate" id="preview-subject">&nbsp;</p>
+            </div>
+
+            {{-- Email iframe preview --}}
+            <div class="p-4 bg-[#1a1a1a]/40">
+              <div id="preview-frame-wrap" class="mx-auto transition-[max-width] duration-300 ease-out" style="max-width:100%;">
+                <iframe id="preview-frame"
+                        title="Vista previa del correo"
+                        class="block w-full bg-white rounded-md border border-white/10 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]"
+                        style="height: 640px;"></iframe>
               </div>
+            </div>
+
+            {{-- Validation chips --}}
+            <div class="px-5 py-3 border-t border-white/10">
+              <p class="text-[11px] uppercase tracking-wider text-white/40 mb-2">Variables detectadas</p>
+              <div id="vars-detected" class="flex flex-wrap gap-1.5 mb-3">
+                <span class="text-xs text-white/30">Ninguna todavía.</span>
+              </div>
+              <div id="vars-missing-wrap" class="hidden">
+                <p class="text-[11px] uppercase tracking-wider text-amber-400/80 mb-2">Recomendadas que faltan</p>
+                <div id="vars-missing" class="flex flex-wrap gap-1.5"></div>
+                <p class="text-[11px] text-amber-300/70 mt-2 leading-relaxed">
+                  Sin estos enlaces el paciente no podrá confirmar ni cancelar desde el correo.
+                </p>
+              </div>
+            </div>
+
+            {{-- Send test --}}
+            <div class="px-5 py-3 border-t border-white/10 bg-white/[0.02]">
+              <button type="button" id="send-test-btn"
+                      class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white/90 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-md transition active:translate-y-[1px]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                <span id="send-test-label">Enviarme un correo de prueba</span>
+              </button>
+              <p id="send-test-feedback" class="hidden mt-2 text-xs text-center"></p>
             </div>
           @else
             {{-- SMS Preview --}}
             <div class="p-4">
               <div class="max-w-[280px] mx-auto">
-                {{-- Phone Frame --}}
                 <div class="bg-gray-900 rounded-[2rem] p-3 shadow-2xl border border-white/10">
-                  {{-- Phone Notch --}}
                   <div class="bg-black h-6 rounded-t-2xl flex items-center justify-center mb-1">
                     <div class="w-16 h-4 bg-gray-900 rounded-full"></div>
                   </div>
-                  {{-- SMS Bubble --}}
                   <div class="bg-gray-800 rounded-2xl p-4 min-h-[200px]">
                     <div class="text-xs text-white/40 text-center mb-3">Mensaje de texto</div>
                     <div class="bg-emerald-600/90 text-white p-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed shadow-lg" id="preview-body">
@@ -349,13 +371,14 @@
                 </div>
               </div>
             </div>
-          @endif
 
-          <div class="px-6 py-3 border-t border-white/10 bg-white/5">
-            <p class="text-xs text-white/40 text-center">
-              💡 Los datos se rellenan automáticamente con información real de cada paciente
-            </p>
-          </div>
+            <div class="px-5 py-3 border-t border-white/10">
+              <p class="text-[11px] uppercase tracking-wider text-white/40 mb-2">Variables detectadas</p>
+              <div id="vars-detected" class="flex flex-wrap gap-1.5">
+                <span class="text-xs text-white/30">Ninguna todavía.</span>
+              </div>
+            </div>
+          @endif
         </div>
       </div>
     </div>
@@ -376,147 +399,240 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+  const isEmail = {{ $isEmail ? 'true' : 'false' }};
+  const channel = isEmail ? 'email' : 'sms';
+  const csrf = '{{ csrf_token() }}';
+  const previewUrl = '{{ route("templates.preview") }}';
+  const sendTestUrl = '{{ route("templates.sendTest") }}';
+
   const bodyField = document.getElementById('body');
   const subjectField = document.getElementById('subject');
-  const previewBody = document.getElementById('preview-body');
+  const insertFieldBtns = document.querySelectorAll('.insert-field-btn');
+  const insertButtonBtns = document.querySelectorAll('.insert-button-btn');
+
+  // Email-only nodes
+  const previewFrame = document.getElementById('preview-frame');
+  const previewFrameWrap = document.getElementById('preview-frame-wrap');
   const previewSubject = document.getElementById('preview-subject');
+  const desktopBtn = document.getElementById('preview-desktop');
+  const mobileBtn = document.getElementById('preview-mobile');
+  const sendTestBtn = document.getElementById('send-test-btn');
+  const sendTestLabel = document.getElementById('send-test-label');
+  const sendTestFeedback = document.getElementById('send-test-feedback');
+
+  // SMS-only nodes
+  const previewBody = document.getElementById('preview-body');
   const charCount = document.getElementById('char-count');
   const smsSegments = document.getElementById('sms-segments');
   const charProgress = document.getElementById('char-progress');
   const smsWarning = document.getElementById('sms-warning');
-  const insertFieldBtns = document.querySelectorAll('.insert-field-btn');
-  const insertButtonBtns = document.querySelectorAll('.insert-button-btn');
-  const isEmail = {{ $isEmail ? 'true' : 'false' }};
 
-  // Sample data for preview
-  const sampleData = {
-    'patient_name': 'María García López',
-    'patient_first_name': 'María',
-    'patient_email': 'maria@ejemplo.com',
-    'appointment_date': 'Lunes 27 de Enero de 2026',
-    'appointment_time': '10:00',
-    'appointment_summary': 'Sesión de terapia',
-    'professional_name': '{{ auth()->user()->name ?? "Dr. Juan Pérez" }}',
-    'confirm_link': '{{ url("/link/abc123") }}',
-    'cancel_link': '{{ url("/link/xyz789") }}',
-    'reschedule_link': 'https://wa.me/34621072649?text=Cambiar%20cita',
-    'hangout_link': 'https://meet.google.com/abc-defg-hij',
+  // Validation chips
+  const varsDetected = document.getElementById('vars-detected');
+  const varsMissing = document.getElementById('vars-missing');
+  const varsMissingWrap = document.getElementById('vars-missing-wrap');
+
+  const recommendedForEmail = ['confirm_link', 'cancel_link'];
+  const buttonMarkerImpliesVar = {
+    '[BOTON_CONFIRMAR]': 'confirm_link',
+    '[BOTON_CANCELAR]': 'cancel_link',
+    '[BOTON_CAMBIAR]': 'reschedule_link'
   };
 
-  // Button templates for email
   const buttonTemplates = {
     'confirm': '[BOTON_CONFIRMAR]',
     'cancel': '[BOTON_CANCELAR]',
     'reschedule': '[BOTON_CAMBIAR]'
   };
 
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  function detectVariables(text) {
+    const used = new Set();
+    const re = /\{\{\s*([a-z_][a-z0-9_]*)\s*\}\}/gi;
+    let m;
+    while ((m = re.exec(text)) !== null) used.add(m[1]);
+    Object.keys(buttonMarkerImpliesVar).forEach((marker) => {
+      if (text.indexOf(marker) !== -1) used.add(buttonMarkerImpliesVar[marker]);
+    });
+    return used;
   }
 
-  function parseTemplate(text) {
-    let result = text;
-    for (const [field, value] of Object.entries(sampleData)) {
-      result = result.replace(new RegExp('\\{\\{' + field + '\\}\\}', 'g'), value);
-    }
-    return result;
-  }
-
-  function renderEmailPreview(text) {
-    let html = escapeHtml(parseTemplate(text));
-    
-    // Convert button markers to actual buttons
-    html = html.replace(/\[BOTON_CONFIRMAR\]/g, 
-      '<a href="#" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#10b981,#059669);color:white;text-decoration:none;border-radius:8px;font-weight:600;margin:8px 4px;">✅ Confirmar cita</a>');
-    html = html.replace(/\[BOTON_CANCELAR\]/g, 
-      '<a href="#" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;text-decoration:none;border-radius:8px;font-weight:600;margin:8px 4px;">❌ Cancelar cita</a>');
-    html = html.replace(/\[BOTON_CAMBIAR\]/g, 
-      '<a href="#" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;text-decoration:none;border-radius:8px;font-weight:600;margin:8px 4px;">📅 Cambiar cita</a>');
-    
-    // Convert newlines to br
-    html = html.replace(/\n/g, '<br>');
-    
-    return html;
-  }
-
-  function updatePreview() {
-    const bodyText = bodyField.value;
-    
-    if (isEmail) {
-      previewBody.innerHTML = renderEmailPreview(bodyText);
-      if (subjectField) {
-        previewSubject.textContent = parseTemplate(subjectField.value);
-      }
+  function renderChips(used) {
+    if (!varsDetected) return;
+    varsDetected.innerHTML = '';
+    if (used.size === 0) {
+      varsDetected.innerHTML = '<span class="text-xs text-white/30">Ninguna todavía.</span>';
     } else {
-      // SMS preview - plain text
-      previewBody.textContent = parseTemplate(bodyText);
+      used.forEach((v) => {
+        const chip = document.createElement('span');
+        chip.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono bg-white/5 border border-white/10 text-white/70';
+        chip.textContent = '{{ "{{" }}' + v + '{{ "}}" }}';
+        varsDetected.appendChild(chip);
+      });
     }
 
-    // Update char count for SMS
-    if (charCount) {
-      const parsedLength = parseTemplate(bodyText).length;
-      charCount.textContent = parsedLength;
-      const segments = Math.ceil(parsedLength / 160) || 1;
-      smsSegments.textContent = segments;
-      
-      // Update progress bar
-      const percent = Math.min((parsedLength / 160) * 100, 100);
-      charProgress.style.width = percent + '%';
-      
-      // Color based on length
-      if (parsedLength > 320) {
-        charProgress.className = 'h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-300';
-        smsWarning.classList.remove('hidden');
-      } else if (parsedLength > 160) {
-        charProgress.className = 'h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full transition-all duration-300';
-        smsWarning.classList.remove('hidden');
+    if (isEmail && varsMissingWrap && varsMissing) {
+      const missing = recommendedForEmail.filter((v) => !used.has(v));
+      if (missing.length === 0) {
+        varsMissingWrap.classList.add('hidden');
       } else {
-        charProgress.className = 'h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-300';
-        smsWarning.classList.add('hidden');
+        varsMissing.innerHTML = '';
+        missing.forEach((v) => {
+          const chip = document.createElement('span');
+          chip.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono bg-amber-500/10 border border-amber-500/30 text-amber-200';
+          chip.textContent = '{{ "{{" }}' + v + '{{ "}}" }}';
+          varsMissing.appendChild(chip);
+        });
+        varsMissingWrap.classList.remove('hidden');
       }
     }
   }
 
-  // Insert dynamic field at cursor position
+  // SMS local rendering (no server roundtrip)
+  function applySampleSms(text) {
+    return text
+      .replace(/\{\{patient_first_name\}\}/g, 'María')
+      .replace(/\{\{patient_name\}\}/g, 'María García López')
+      .replace(/\{\{appointment_date\}\}/g, 'lunes 27 de enero de 2026')
+      .replace(/\{\{appointment_time\}\}/g, '10:00')
+      .replace(/\{\{appointment_summary\}\}/g, 'Sesión de terapia')
+      .replace(/\{\{professional_name\}\}/g, @json(auth()->user()->name ?? 'tu psicóloga'))
+      .replace(/\{\{confirm_link\}\}/g, 'nimbus.app/c/abc')
+      .replace(/\{\{cancel_link\}\}/g, 'nimbus.app/x/xyz')
+      .replace(/\{\{reschedule_link\}\}/g, 'wa.me/...');
+  }
+
+  function updateSmsPreview() {
+    const text = bodyField.value;
+    const parsed = applySampleSms(text);
+    previewBody.textContent = parsed;
+    const len = parsed.length;
+    if (charCount) charCount.textContent = len;
+    const segments = Math.ceil(len / 160) || 1;
+    if (smsSegments) smsSegments.textContent = segments;
+    if (charProgress) {
+      const percent = Math.min((len / 160) * 100, 100);
+      charProgress.style.width = percent + '%';
+      if (len > 320) {
+        charProgress.className = 'h-full bg-red-500 rounded-full transition-all duration-300';
+        smsWarning && smsWarning.classList.remove('hidden');
+      } else if (len > 160) {
+        charProgress.className = 'h-full bg-amber-500 rounded-full transition-all duration-300';
+        smsWarning && smsWarning.classList.remove('hidden');
+      } else {
+        charProgress.className = 'h-full bg-cyan-500 rounded-full transition-all duration-300';
+        smsWarning && smsWarning.classList.add('hidden');
+      }
+    }
+  }
+
+  // Email preview via server (renders real Blade template)
+  let previewAbort = null;
+  let debounceId = null;
+  function fetchEmailPreview() {
+    if (debounceId) clearTimeout(debounceId);
+    debounceId = setTimeout(async () => {
+      if (previewAbort) previewAbort.abort();
+      previewAbort = new AbortController();
+      try {
+        const res = await fetch(previewUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+          body: JSON.stringify({
+            channel: 'email',
+            body: bodyField.value,
+            subject: subjectField ? subjectField.value : ''
+          }),
+          signal: previewAbort.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (previewFrame && data.html) previewFrame.srcdoc = data.html;
+        if (previewSubject) previewSubject.textContent = data.subject || ' ';
+      } catch (e) {
+        if (e.name !== 'AbortError') console.warn('preview error', e);
+      }
+    }, 350);
+  }
+
+  function update() {
+    const used = detectVariables(bodyField.value + ' ' + (subjectField ? subjectField.value : ''));
+    renderChips(used);
+    if (isEmail) fetchEmailPreview();
+    else updateSmsPreview();
+  }
+
   function insertAtCursor(text) {
-    const cursorPos = bodyField.selectionStart;
-    const textBefore = bodyField.value.substring(0, cursorPos);
-    const textAfter = bodyField.value.substring(cursorPos);
-    
-    bodyField.value = textBefore + text + textAfter;
+    const pos = bodyField.selectionStart;
+    const before = bodyField.value.substring(0, pos);
+    const after = bodyField.value.substring(pos);
+    bodyField.value = before + text + after;
     bodyField.focus();
-    bodyField.setSelectionRange(cursorPos + text.length, cursorPos + text.length);
-    updatePreview();
+    bodyField.setSelectionRange(pos + text.length, pos + text.length);
+    update();
   }
 
-  // Field buttons
-  insertFieldBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const field = '@{{' + this.dataset.field + '}}';
-      insertAtCursor(field);
-    });
-  });
+  insertFieldBtns.forEach((btn) => btn.addEventListener('click', () => insertAtCursor('{{ "{{" }}' + btn.dataset.field + '{{ "}}" }}')));
+  insertButtonBtns.forEach((btn) => btn.addEventListener('click', () => insertAtCursor('\n' + buttonTemplates[btn.dataset.buttonType] + '\n')));
 
-  // Button buttons (email only)
-  insertButtonBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const buttonType = this.dataset.buttonType;
-      const marker = buttonTemplates[buttonType];
-      insertAtCursor('\n' + marker + '\n');
-    });
-  });
+  bodyField.addEventListener('input', update);
+  if (subjectField) subjectField.addEventListener('input', update);
 
-  // Listen for input changes
-  bodyField.addEventListener('input', updatePreview);
-  if (subjectField) {
-    subjectField.addEventListener('input', updatePreview);
+  // Device toggle
+  function setDevice(mode) {
+    if (!previewFrameWrap) return;
+    if (mode === 'mobile') {
+      previewFrameWrap.style.maxWidth = '375px';
+      desktopBtn.dataset.active = 'false';
+      mobileBtn.dataset.active = 'true';
+    } else {
+      previewFrameWrap.style.maxWidth = '100%';
+      desktopBtn.dataset.active = 'true';
+      mobileBtn.dataset.active = 'false';
+    }
+  }
+  if (desktopBtn && mobileBtn) {
+    desktopBtn.addEventListener('click', () => setDevice('desktop'));
+    mobileBtn.addEventListener('click', () => setDevice('mobile'));
   }
 
-  // Initial preview
-  updatePreview();
+  // Send test
+  if (sendTestBtn) {
+    sendTestBtn.addEventListener('click', async () => {
+      sendTestBtn.disabled = true;
+      const originalLabel = sendTestLabel.textContent;
+      sendTestLabel.textContent = 'Enviando…';
+      sendTestFeedback.classList.add('hidden');
+      try {
+        const res = await fetch(sendTestUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+          body: JSON.stringify({
+            body: bodyField.value,
+            subject: subjectField ? subjectField.value : '(sin asunto)',
+          }),
+        });
+        const data = await res.json();
+        sendTestFeedback.classList.remove('hidden');
+        if (res.ok) {
+          sendTestFeedback.className = 'mt-2 text-xs text-center text-emerald-300';
+          sendTestFeedback.textContent = data.message || 'Correo enviado.';
+        } else {
+          sendTestFeedback.className = 'mt-2 text-xs text-center text-red-300';
+          sendTestFeedback.textContent = data.error || 'No se pudo enviar.';
+        }
+      } catch (e) {
+        sendTestFeedback.classList.remove('hidden');
+        sendTestFeedback.className = 'mt-2 text-xs text-center text-red-300';
+        sendTestFeedback.textContent = 'Error de red.';
+      } finally {
+        sendTestLabel.textContent = originalLabel;
+        sendTestBtn.disabled = false;
+      }
+    });
+  }
+
+  update();
 });
 </script>
 </x-app-layout>

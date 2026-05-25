@@ -38,9 +38,9 @@ class MessageTemplatesController extends Controller
         $channel = $request->get('channel', 'email');
 
         // Default values defined here to avoid Blade parsing issues with {{ }}
-        $defaultSubject = 'Recordatorio: {{appointment_summary}}';
-        $defaultBodySms = 'Hola {{patient_first_name}}! Recordatorio: {{appointment_summary}} el {{appointment_date}} a las {{appointment_time}}. Confirmar: {{confirm_link}} Cancelar: {{cancel_link}}';
-        $defaultBodyEmail = "Hola {{patient_first_name}},\n\nTe recordamos tu próxima cita:\n\n📅 {{appointment_date}}\n🕐 {{appointment_time}}\n📋 {{appointment_summary}}\n\n¿Qué deseas hacer?\n\n✅ Confirmar: {{confirm_link}}\n❌ Cancelar: {{cancel_link}}\n\nSaludos,\n{{professional_name}}";
+        $defaultSubject = 'Recordatorio de tu cita del {{appointment_date}}';
+        $defaultBodySms = 'Hola {{patient_first_name}}, te recuerdo tu cita del {{appointment_date}} a las {{appointment_time}}. Confirmar: {{confirm_link}} · Cancelar: {{cancel_link}}';
+        $defaultBodyEmail = "Hola {{patient_first_name}},\n\nTe escribo para recordarte tu próxima sesión: el {{appointment_date}} a las {{appointment_time}}.\n\nSi todo sigue igual, confirma con un clic. Si no puedes asistir, avísame también con un clic y reorganizamos.\n\n[BOTON_CONFIRMAR]\n\n[BOTON_CANCELAR]\n\nUn abrazo,\n{{professional_name}}";
 
         return view('templates.create', [
             'channel' => $channel,
@@ -229,43 +229,142 @@ class MessageTemplatesController extends Controller
     }
 
     /**
-     * API endpoint for live preview
+     * API endpoint for live preview.
+     * For email: renders the actual templated-reminder Blade view as HTML.
+     * For SMS: returns parsed plain text with character/segment counts.
      */
     public function preview(Request $request)
     {
-        $body = $request->input('body', '');
-        $subject = $request->input('subject', '');
+        $body = (string) $request->input('body', '');
+        $subject = (string) $request->input('subject', '');
+        $channel = $request->input('channel', 'email');
 
-        $sampleData = [
-            'patient_name' => 'María García López',
-            'patient_first_name' => 'María',
-            'patient_email' => 'maria@ejemplo.com',
-            'appointment_date' => 'Lunes 27 de Enero de 2026',
-            'appointment_time' => '10:00',
-            'appointment_summary' => 'Sesión de terapia',
-            'professional_name' => Auth::user()->name ?? 'Dr. Juan Pérez',
-            'confirm_link' => url('/link/abc123'),
-            'cancel_link' => url('/link/xyz789'),
-            'hangout_link' => 'https://meet.google.com/abc-defg-hij',
-        ];
+        $sample = $this->samplePreviewData();
 
-        // Parse body
-        $parsedBody = $body;
-        foreach ($sampleData as $field => $value) {
-            $parsedBody = str_replace('{{' . $field . '}}', $value, $parsedBody);
+        $parsedBody = $this->applyVariables($body, $sample['fields']);
+        $parsedSubject = $this->applyVariables($subject, $sample['fields']);
+
+        if ($channel === 'sms') {
+            return response()->json([
+                'channel' => 'sms',
+                'body' => $parsedBody,
+                'subject' => $parsedSubject,
+                'charCount' => mb_strlen($parsedBody),
+                'smsSegments' => max(1, (int) ceil(mb_strlen($parsedBody) / 160)),
+            ]);
         }
 
-        // Parse subject
-        $parsedSubject = $subject;
-        foreach ($sampleData as $field => $value) {
-            $parsedSubject = str_replace('{{' . $field . '}}', $value, $parsedSubject);
-        }
+        // Render the actual email Blade view so the preview matches what the patient receives.
+        $html = view('emails.templated-reminder', [
+            'appointment' => $sample['appointment'],
+            'patient' => $sample['patient'],
+            'emailBody' => $parsedBody,
+            'confirmUrl' => $sample['fields']['confirm_link'],
+            'cancelUrl' => $sample['fields']['cancel_link'],
+            'rescheduleUrl' => $sample['fields']['reschedule_link'],
+        ])->render();
 
         return response()->json([
-            'body' => $parsedBody,
+            'channel' => 'email',
             'subject' => $parsedSubject,
-            'charCount' => strlen($parsedBody),
-            'smsSegments' => (int) ceil(strlen($parsedBody) / 160),
+            'html' => $html,
         ]);
+    }
+
+    /**
+     * Send a test email to the authenticated user with sample data.
+     */
+    public function sendTest(Request $request)
+    {
+        $request->validate([
+            'subject' => 'required|string|max:255',
+            'body' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        if (empty($user->email)) {
+            return response()->json(['error' => 'Tu cuenta no tiene un email asociado.'], 422);
+        }
+
+        $sample = $this->samplePreviewData();
+        $parsedBody = $this->applyVariables($request->input('body'), $sample['fields']);
+        $parsedSubject = $this->applyVariables($request->input('subject'), $sample['fields']);
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(
+                new \App\Mail\TemplatedReminder(
+                    $sample['appointment'],
+                    $sample['patient'],
+                    '[Prueba] ' . $parsedSubject,
+                    $parsedBody,
+                    [
+                        'confirmUrl' => $sample['fields']['confirm_link'],
+                        'cancelUrl' => $sample['fields']['cancel_link'],
+                        'rescheduleUrl' => $sample['fields']['reschedule_link'],
+                    ]
+                )
+            );
+
+            return response()->json([
+                'ok' => true,
+                'message' => 'Correo de prueba enviado a ' . $user->email,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => 'No se pudo enviar el correo de prueba: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Sample data used in preview & test send. Uses an in-memory Appointment and Patient
+     * (not persisted) so the preview matches the real email rendering pipeline.
+     */
+    protected function samplePreviewData(): array
+    {
+        $user = Auth::user();
+        $professionalName = $user->name ?? 'Dra. Lucía Hernández';
+
+        $patient = new \App\Models\Patient([
+            'name' => 'María García López',
+            'email' => $user->email ?? 'maria@ejemplo.com',
+            'phone' => '+34 600 123 456',
+            'code' => 'MGL',
+        ]);
+        $patient->setRelation('user', $user);
+
+        $appointment = new \App\Models\Appointment([
+            'summary' => 'Sesión de terapia',
+            'start_at' => now()->next(\Carbon\Carbon::MONDAY)->setTime(10, 0),
+            'end_at' => now()->next(\Carbon\Carbon::MONDAY)->setTime(11, 0),
+            'timezone' => config('app.timezone', 'Europe/Madrid'),
+            'hangout_link' => null,
+            'description' => null,
+        ]);
+        $appointment->setRelation('patient', $patient);
+
+        $fields = [
+            'patient_name' => $patient->name,
+            'patient_first_name' => 'María',
+            'patient_email' => $patient->email,
+            'appointment_date' => $appointment->formatted_date,
+            'appointment_time' => $appointment->formatted_time,
+            'appointment_summary' => $appointment->summary,
+            'professional_name' => $professionalName,
+            'confirm_link' => url('/link/preview-confirm'),
+            'cancel_link' => url('/link/preview-cancel'),
+            'reschedule_link' => 'https://wa.me/?text=Cambiar%20cita',
+            'hangout_link' => '',
+        ];
+
+        return compact('appointment', 'patient', 'fields');
+    }
+
+    protected function applyVariables(string $text, array $fields): string
+    {
+        foreach ($fields as $key => $value) {
+            $text = str_replace('{{' . $key . '}}', (string) $value, $text);
+        }
+        return $text;
     }
 }

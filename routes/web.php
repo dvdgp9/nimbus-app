@@ -92,6 +92,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureOnboardingCompleted::class
     Route::post('/templates/{template}/duplicate', [MessageTemplatesController::class, 'duplicate'])->name('templates.duplicate');
     Route::post('/templates/{template}/set-default', [MessageTemplatesController::class, 'setDefault'])->name('templates.setDefault');
     Route::post('/templates/preview', [MessageTemplatesController::class, 'preview'])->name('templates.preview');
+    Route::post('/templates/send-test', [MessageTemplatesController::class, 'sendTest'])->name('templates.sendTest');
 });
 
 require __DIR__.'/auth.php';
