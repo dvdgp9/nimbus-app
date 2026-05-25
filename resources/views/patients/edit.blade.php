@@ -77,6 +77,7 @@
         @error('email')
           <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
         @enderror
+        <p class="mt-1 text-xs text-white/40">Sin email no se podrán enviar recordatorios por correo.</p>
       </div>
 
       {{-- Phone --}}
@@ -95,7 +96,7 @@
         @error('phone')
           <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
         @enderror
-        <p class="mt-1 text-xs text-white/40">Formato internacional recomendado: +34XXXXXXXXX</p>
+        <p class="mt-1 text-xs text-white/40">Formato internacional recomendado (+34XXXXXXXXX). Sin teléfono no se podrán enviar SMS.</p>
       </div>
 
       {{-- Channels Section --}}

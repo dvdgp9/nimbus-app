@@ -77,9 +77,28 @@
       </div>
 
       {{-- CTA --}}
+      @if(!$isConnected)
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 text-left">
+          <p class="text-red-300 text-sm font-semibold mb-1">⚠️ Google Calendar no está conectado</p>
+          <p class="text-white/70 text-sm">
+            Sin esta conexión Nimbus no puede leer tus citas ni enviar recordatorios. Vuelve al paso anterior y conecta tu cuenta de Google antes de continuar.
+          </p>
+        </div>
+      @endif
+
+      @if($errors->any())
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 text-left">
+          @foreach($errors->all() as $error)
+            <p class="text-red-300 text-sm">{{ $error }}</p>
+          @endforeach
+        </div>
+      @endif
+
       <form action="{{ route('onboarding.complete') }}" method="POST">
         @csrf
-        <button type="submit" class="btn btn-primary btn-lg w-full md:w-auto px-12">
+        <button type="submit"
+                @if(!$isConnected) disabled @endif
+                class="btn btn-primary btn-lg w-full md:w-auto px-12 @if(!$isConnected) opacity-50 cursor-not-allowed @endif">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
           </svg>

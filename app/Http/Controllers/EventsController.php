@@ -34,11 +34,17 @@ class EventsController extends Controller
             ->pluck('calendar_id')
             ->all();
 
+        $filter = $request->query('filter');
+
         // Get ALL appointments from user's calendars (next 30 days)
         // Don't filter by patient ownership - show all events
         $appointments = Appointment::with('patient')
             ->when($calendarIds, function ($query) use ($calendarIds) {
                 $query->whereIn('calendar_id', $calendarIds);
+            })
+            ->when($filter === 'unassigned', function ($query) {
+                $query->whereNull('patient_id')
+                      ->whereNotIn('nimbus_status', ['cancelled', 'cancelled_acknowledged']);
             })
             ->where('start_at', '>=', now())
             ->where('start_at', '<=', now()->addDays(30))
@@ -48,6 +54,7 @@ class EventsController extends Controller
         return view('events.index', [
             'account' => $email,
             'appointments' => $appointments,
+            'filter' => $filter,
         ]);
     }
 
@@ -70,19 +77,15 @@ class EventsController extends Controller
             $count = $this->calendar->syncAppointments($events, auth()->id(), $calendarIds ?: null, $hoursAhead);
             return back()->with('status', "Sincronizados {$count} eventos de los próximos 30 días");
         } catch (\Google\Service\Exception $e) {
-            // Check if error is due to insufficient scopes
             $error = json_decode($e->getMessage(), true);
             if (isset($error['error']['code']) && $error['error']['code'] === 403) {
-                // Delete the token to force re-authentication with new scopes
-                DB::table('google_tokens')
-                    ->where('user_id', auth()->id())
-                    ->where('account_email', $email)
-                    ->delete();
-                
-                return redirect()->route('google.connect')
-                    ->with('status', 'Es necesario volver a conectar tu cuenta de Google con los permisos correctos. Por favor, autoriza el acceso a Google Calendar.');
+                // No borramos el token: mantenemos el registro hasta que la psicóloga
+                // reconecte correctamente. Así no perdemos contexto si decide cancelar.
+                return redirect()->route('google.connect')->withErrors([
+                    'google' => 'Google rechazó la sincronización por permisos insuficientes (error 403). Vuelve a conectar tu cuenta y, en la pantalla de Google, asegúrate de marcar TODAS las casillas de permisos solicitados (lectura de calendarios y eventos). Sin esos permisos Nimbus no puede leer tus citas.',
+                ]);
             }
-            throw $e; // Re-throw if it's a different error
+            throw $e;
         }
     }
 

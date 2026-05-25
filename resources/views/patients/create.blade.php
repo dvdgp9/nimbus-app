@@ -63,40 +63,39 @@
       {{-- Email --}}
       <div>
         <label for="email" class="block text-sm font-medium text-white/80 mb-2">
-          Email <span class="text-red-400">*</span>
+          Email
         </label>
-        <input 
-          type="email" 
-          id="email" 
-          name="email" 
+        <input
+          type="email"
+          id="email"
+          name="email"
           value="{{ old('email', $prefill['email'] ?? '') }}"
-          required
           class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition @error('email') border-red-500/50 @enderror"
           placeholder="correo@ejemplo.com"
         >
         @error('email')
           <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
         @enderror
+        <p class="mt-1 text-xs text-white/40">Sin email no se podrán enviar recordatorios por correo.</p>
       </div>
 
       {{-- Phone --}}
       <div>
         <label for="phone" class="block text-sm font-medium text-white/80 mb-2">
-          Teléfono <span class="text-red-400">*</span>
+          Teléfono
         </label>
-        <input 
-          type="text" 
-          id="phone" 
-          name="phone" 
+        <input
+          type="text"
+          id="phone"
+          name="phone"
           value="{{ old('phone', $prefill['phone'] ?? '') }}"
-          required
           class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition @error('phone') border-red-500/50 @enderror"
           placeholder="+34XXXXXXXXX"
         >
         @error('phone')
           <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
         @enderror
-        <p class="mt-1 text-xs text-white/40">Formato internacional recomendado: +34XXXXXXXXX</p>
+        <p class="mt-1 text-xs text-white/40">Formato internacional recomendado (+34XXXXXXXXX). Sin teléfono no se podrán enviar SMS.</p>
       </div>
 
       {{-- Channels Section --}}

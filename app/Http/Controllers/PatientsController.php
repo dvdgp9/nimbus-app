@@ -131,14 +131,14 @@ class PatientsController extends Controller
             ],
             'name' => 'required|string|max:255',
             'email' => [
-                'required', 
-                'email', 
-                'max:255', 
+                'nullable',
+                'email',
+                'max:255',
                 Rule::unique('patients')->where(function ($query) {
                     return $query->where('user_id', auth()->id());
                 })
             ],
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
             'notes' => 'nullable|string',
@@ -147,8 +147,6 @@ class PatientsController extends Controller
             'email.unique' => 'Ya existe un paciente con este email.',
             'code.required' => 'El código del paciente es obligatorio.',
             'name.required' => 'El nombre del paciente es obligatorio.',
-            'email.required' => 'El email del paciente es obligatorio.',
-            'phone.required' => 'El teléfono del paciente es obligatorio.',
         ]);
 
         // Set default preferred_channel to 'email' for backwards compatibility
@@ -227,14 +225,14 @@ class PatientsController extends Controller
             ],
             'name' => 'required|string|max:255',
             'email' => [
-                'required', 
-                'email', 
-                'max:255', 
+                'nullable',
+                'email',
+                'max:255',
                 Rule::unique('patients')->where(function ($query) {
                     return $query->where('user_id', auth()->id());
                 })->ignore($patient->id)
             ],
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'consent_email' => 'boolean',
             'consent_sms' => 'boolean',
             'notes' => 'nullable|string',
@@ -243,8 +241,6 @@ class PatientsController extends Controller
             'email.unique' => 'Ya existe otro paciente con este email.',
             'code.required' => 'El código del paciente es obligatorio.',
             'name.required' => 'El nombre del paciente es obligatorio.',
-            'email.required' => 'El email del paciente es obligatorio.',
-            'phone.required' => 'El teléfono del paciente es obligatorio.',
         ]);
 
         // Normalize code to uppercase

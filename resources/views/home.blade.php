@@ -27,6 +27,24 @@
   </div>
   @endif
 
+  {{-- Unassigned appointments banner --}}
+  @if($isConnected && $upcomingMissingPatientCount > 0)
+  <div class="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-4">
+    <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+      <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+      </svg>
+    </div>
+    <div class="flex-1">
+      <h3 class="text-red-300 font-semibold">{{ $upcomingMissingPatientCount }} cita(s) sin paciente asignado</h3>
+      <p class="text-red-200/70 text-sm">Estas citas no recibirán recordatorios hasta que les asignes un paciente con código.</p>
+    </div>
+    <a href="{{ route('events.index', ['account' => $account, 'filter' => 'unassigned']) }}" class="btn btn-secondary flex-shrink-0">
+      Revisar
+    </a>
+  </div>
+  @endif
+
   {{-- Stats Grid --}}
   <div class="stats-grid">
     <div class="stat-card {{ $isConnected ? 'border-green-500/30' : 'border-white/10' }}">
@@ -102,6 +120,14 @@
               $isReminderSent = filled($apt->reminder_sent_at);
               $isCancelled = in_array($apt->nimbus_status, ['cancelled', 'cancelled_acknowledged'], true);
               $canSendReminder = filled($apt->patient_id) && !$isCancelled;
+              $missingConsent = $apt->patient
+                && !$isCancelled
+                && !$isReminderSent
+                && (
+                  ($apt->patient->email && !$apt->patient->consent_email)
+                  || ($apt->patient->phone && !$apt->patient->consent_sms)
+                )
+                && !($apt->patient->consent_email || $apt->patient->consent_sms);
             @endphp
             <div class="flex flex-col gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/[0.07] transition sm:flex-row sm:items-center sm:gap-4">
               {{-- Time --}}
@@ -152,6 +178,13 @@
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/10 text-white/60">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path></svg>
                     Cita pendiente
+                  </span>
+                @endif
+
+                @if($missingConsent)
+                  <span title="El paciente no tiene consentimiento marcado para ningún canal. No se enviará recordatorio." class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-200">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"></path></svg>
+                    Sin consentimiento
                   </span>
                 @endif
 

@@ -96,6 +96,32 @@
         @if($patient->consent_date)
           <p class="text-xs text-white/60 mb-3">Consentimiento dado el {{ $patient->consent_date->format('d/m/Y') }}</p>
         @endif
+
+        @php
+          $emailMissingConsent = $patient->email && !$patient->consent_email;
+          $smsMissingConsent = $patient->phone && !$patient->consent_sms;
+          $noChannelsUsable = !$patient->consent_email && !$patient->consent_sms;
+        @endphp
+
+        @if($noChannelsUsable && ($patient->email || $patient->phone))
+          <div class="mb-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+            <p class="text-red-300 text-sm font-semibold">⚠️ No se enviarán recordatorios</p>
+            <p class="text-white/70 text-xs mt-1">El paciente tiene datos de contacto pero no ha dado consentimiento en ningún canal.</p>
+          </div>
+        @elseif($emailMissingConsent || $smsMissingConsent)
+          <div class="mb-3 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+            <p class="text-amber-300 text-sm font-semibold">Falta consentimiento</p>
+            <p class="text-white/70 text-xs mt-1">
+              @if($emailMissingConsent && $smsMissingConsent)
+                Email y teléfono registrados, pero sin consentimiento marcado.
+              @elseif($emailMissingConsent)
+                Email registrado pero sin consentimiento — no se enviarán correos.
+              @else
+                Teléfono registrado pero sin consentimiento — no se enviarán SMS.
+              @endif
+            </p>
+          </div>
+        @endif
         <div class="space-y-2">
           <div class="flex items-center gap-2">
             @if($patient->consent_email)

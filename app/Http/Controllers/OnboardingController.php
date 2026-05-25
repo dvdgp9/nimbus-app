@@ -226,6 +226,15 @@ class OnboardingController extends Controller
     public function complete(Request $request)
     {
         $user = auth()->user();
+
+        if (!$this->hasConfiguredCalendars()) {
+            $user->update(['onboarding_step' => self::STEP_CONNECT_CALENDAR]);
+
+            return redirect()->route('onboarding.index')->withErrors([
+                'calendar' => 'Necesitas conectar Google Calendar antes de empezar a usar Nimbus. Sin esta conexión no podrán enviarse recordatorios.',
+            ]);
+        }
+
         $user->completeOnboarding();
 
         return redirect()->route('home')->with('success', '¡Bienvenida a Nimbus! Tu cuenta está lista.');
