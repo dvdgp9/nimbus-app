@@ -5,7 +5,7 @@
   $isSms = $channel === 'sms';
 @endphp
 
-<div class="page-container max-w-5xl">
+<div class="page-container max-w-7xl">
   {{-- Page Header --}}
   <div class="mb-8">
     <a href="{{ request('from_onboarding') ? route('onboarding.step', ['step' => 4]) : route('templates.index', ['channel' => $channel]) }}" class="text-cyan-400 hover:text-cyan-300 transition inline-flex items-center gap-1 mb-4">
@@ -28,9 +28,9 @@
       <input type="hidden" name="from_onboarding" value="1">
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
       {{-- Left Column: Editor --}}
-      <div class="space-y-6">
+      <div class="space-y-6 lg:col-span-2">
         {{-- Basic Info Card --}}
         <div class="bg-white/5 rounded-xl border border-white/10 p-6 space-y-5">
           <h3 class="text-white font-semibold flex items-center gap-2">
@@ -201,8 +201,14 @@
             {{-- Email Buttons --}}
             <label class="block text-sm font-medium text-white/80 mt-4">
               Insertar botones de acción
-              <span class="text-white/40 font-normal text-xs ml-1">(se verán como botones en el email)</span>
             </label>
+            <p class="text-xs text-white/50 mb-2 leading-relaxed">
+              Coloca el cursor donde quieras el botón y haz clic. Verás un marcador
+              tipo <code class="text-cyan-300 bg-white/5 px-1 rounded">[BOTON_CONFIRMAR]</code>
+              que se convertirá en un botón real en el correo. Mejor que escribir
+              <code class="text-white/40 bg-white/5 px-1 rounded">Confirmar: {enlace}</code>,
+              que queda como texto suelto.
+            </p>
             <div class="flex flex-wrap gap-2">
               <button type="button" class="insert-button-btn px-3 py-2 bg-gradient-to-r from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-300 rounded-lg text-sm font-medium transition-all" data-button-type="confirm" title="Botón para confirmar cita">
                 <span class="flex items-center gap-1.5">
@@ -291,7 +297,7 @@
       </div>
 
       {{-- Right Column: Live Preview --}}
-      <div class="space-y-4">
+      <div class="space-y-4 lg:col-span-3">
         <div class="bg-white/5 rounded-xl border border-white/10 overflow-hidden sticky top-4">
           <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
             <div>

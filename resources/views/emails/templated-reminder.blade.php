@@ -13,6 +13,17 @@
   $rescheduleBtn = '<p style="margin:14px 0;text-align:center;font-family:Georgia,Times,serif;font-size:14px;color:' . $muted . ';">¿Necesitas cambiar el día? <a href="' . ($rescheduleUrl ?? '#') . '" style="color:' . $accent . ';text-decoration:underline;">Escríbeme por WhatsApp</a>.</p>';
 
   $processedBody = e($emailBody);
+
+  // Auto-link bare URLs before injecting button HTML, so we don't touch our own anchors.
+  $processedBody = preg_replace_callback(
+      '#(https?://[^\s<>\'"]+)#i',
+      function ($m) use ($accent) {
+          $url = $m[1];
+          return '<a href="' . $url . '" style="color:' . $accent . ';text-decoration:underline;word-break:break-all;">' . $url . '</a>';
+      },
+      $processedBody
+  );
+
   $processedBody = str_replace('[BOTON_CONFIRMAR]', $confirmBtn, $processedBody);
   $processedBody = str_replace('[BOTON_CANCELAR]', $cancelBtn, $processedBody);
   $processedBody = str_replace('[BOTON_CAMBIAR]', $rescheduleBtn, $processedBody);
