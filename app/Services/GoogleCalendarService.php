@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Google\Service\Calendar as GoogleCalendar;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 
 class GoogleCalendarService
@@ -77,7 +78,7 @@ class GoogleCalendarService
         $detectedCalendars = [];
         foreach ($events as $e) {
             $count++;
-            
+
             // Track event id for later cleanup
             if (!empty($e['google_event_id'])) {
                 $googleIds[] = $e['google_event_id'];
@@ -88,48 +89,102 @@ class GoogleCalendarService
 
             // Try to find or create patient from attendee info
             $patientId = $this->findOrCreatePatient($e, $userId);
-            
+
             // Extract message code from title (last word after last space)
             // Example: "EVTA Cita 1 BP" → code is "BP"
             $messageCode = $this->extractMessageCode($e['summary']);
-            
+
+            $newStart = $this->toDateTime($e['start_at']);
+            $newEnd = $this->toDateTime($e['end_at']);
+
+            $existing = DB::table('appointments')
+                ->where('google_event_id', $e['google_event_id'])
+                ->first();
+
+            $data = [
+                'calendar_id' => $e['calendar_id'],
+                'summary' => $e['summary'],
+                'description' => $e['description'],
+                'start_at' => $newStart,
+                'end_at' => $newEnd,
+                'timezone' => $e['timezone'] ?? 'Europe/Madrid', // Default timezone for all-day events
+                'hangout_link' => $e['hangout_link'],
+                'patient_id' => $patientId,
+                'message_code' => $messageCode,
+                'last_synced_at' => now(),
+                'raw_payload' => json_encode($e['raw']),
+                'updated_at' => now(),
+            ];
+
+            // BUG-B4: if the appointment was moved in Google Calendar (start_at changed),
+            // reset reminder state so the patient is notified again with the new date.
+            if ($existing && $existing->start_at !== (string) $newStart) {
+                $data['reminder_sent_at'] = null;
+                // Only reset status if it was advanced by the reminder pipeline.
+                // Preserve confirmed/cancelled states the patient already set.
+                if (in_array($existing->nimbus_status, ['reminder_sent', 'pending'], true)) {
+                    $data['nimbus_status'] = 'pending';
+                }
+                Log::info("Appointment {$existing->id} moved in Google ({$existing->start_at} → {$newStart}). Reminder state reset.");
+            }
+
+            // BUG-B6: only set created_at on first insert, not on every sync.
+            if (!$existing) {
+                $data['created_at'] = now();
+            }
+
             DB::table('appointments')->updateOrInsert(
                 ['google_event_id' => $e['google_event_id']],
-                [
-                    'calendar_id' => $e['calendar_id'],
-                    'summary' => $e['summary'],
-                    'description' => $e['description'],
-                    'start_at' => $this->toDateTime($e['start_at']),
-                    'end_at' => $this->toDateTime($e['end_at']),
-                    'timezone' => $e['timezone'] ?? 'Europe/Madrid', // Default timezone for all-day events
-                    'hangout_link' => $e['hangout_link'],
-                    'patient_id' => $patientId,
-                    'message_code' => $messageCode,
-                    'last_synced_at' => now(),
-                    'raw_payload' => json_encode($e['raw']),
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
+                $data
             );
         }
 
-        // Cleanup: remove appointments that no longer exist in Google for these calendars
+        // BUG-B1: never delete appointments based on a possibly-broken Google response.
+        // The safe condition is: we *did* receive events for these calendars; only then
+        // we trust the list and prune the orphans.
         $targetCalendars = $calendarIds ?: array_values(array_unique(array_filter($detectedCalendars)));
-        if (!empty($targetCalendars)) {
+        if (!empty($targetCalendars) && !empty($googleIds)) {
             $now = now();
             $upperBound = $now->copy()->addHours($hoursAhead);
 
-            $query = DB::table('appointments')
+            $existingCount = DB::table('appointments')
                 ->whereIn('calendar_id', $targetCalendars)
                 ->whereNotNull('google_event_id')
                 ->where('start_at', '>=', $now)
-                ->where('start_at', '<=', $upperBound);
+                ->where('start_at', '<=', $upperBound)
+                ->count();
 
-            if (!empty($googleIds)) {
-                $query->whereNotIn('google_event_id', $googleIds);
+            // Sanity threshold: if the Google response would force us to delete more than
+            // half of the future appointments, refuse and log. A real situation rarely
+            // wipes out half a calendar in 15 minutes; a partial API response can.
+            $wouldDelete = DB::table('appointments')
+                ->whereIn('calendar_id', $targetCalendars)
+                ->whereNotNull('google_event_id')
+                ->where('start_at', '>=', $now)
+                ->where('start_at', '<=', $upperBound)
+                ->whereNotIn('google_event_id', $googleIds)
+                ->count();
+
+            if ($existingCount > 0 && $wouldDelete > 0 && ($wouldDelete / max($existingCount, 1)) > 0.5) {
+                Log::warning("Sync cleanup aborted: would delete {$wouldDelete} of {$existingCount} appointments. Possible partial Google response.", [
+                    'user_id' => $userId,
+                    'calendars' => $targetCalendars,
+                    'received_events' => count($googleIds),
+                ]);
+            } else {
+                DB::table('appointments')
+                    ->whereIn('calendar_id', $targetCalendars)
+                    ->whereNotNull('google_event_id')
+                    ->where('start_at', '>=', $now)
+                    ->where('start_at', '<=', $upperBound)
+                    ->whereNotIn('google_event_id', $googleIds)
+                    ->delete();
             }
-
-            $query->delete();
+        } elseif (!empty($targetCalendars) && empty($googleIds)) {
+            Log::warning("Sync cleanup skipped: Google returned 0 events for calendars. Refusing to delete anything.", [
+                'user_id' => $userId,
+                'calendars' => $targetCalendars,
+            ]);
         }
 
         return $count;
@@ -262,6 +317,38 @@ class GoogleCalendarService
             return true;
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Failed to update event title: " . $e->getMessage(), [
+                'calendar_id' => $calendarId,
+                'event_id' => $eventId,
+                'prefix' => $prefix,
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Remove a leading prefix from an event title if present.
+     * Used when a patient cancels an appointment that was previously confirmed
+     * (and therefore had "OK - " prepended).
+     */
+    public function removeEventTitlePrefix(string $calendarId, string $eventId, string $prefix, ?string $accountEmail = null, ?int $userId = null): bool
+    {
+        try {
+            $client = GoogleClientFactory::make($accountEmail, $userId);
+            $service = new GoogleCalendar($client);
+
+            $event = $service->events->get($calendarId, $eventId);
+            $currentTitle = $event->getSummary() ?? '';
+
+            if (!str_starts_with($currentTitle, $prefix)) {
+                return true;
+            }
+
+            $event->setSummary(substr($currentTitle, strlen($prefix)));
+            $service->events->update($calendarId, $eventId, $event);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error("Failed to remove event title prefix: " . $e->getMessage(), [
                 'calendar_id' => $calendarId,
                 'event_id' => $eventId,
                 'prefix' => $prefix,

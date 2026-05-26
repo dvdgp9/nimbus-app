@@ -13,16 +13,41 @@ use App\Mail\UnknownPatientCode;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Exception;
 use App\Services\AcumbamailService;
 
 class NotificationService
 {
     /**
+     * Maximum number of failed delivery attempts per appointment in 24h
+     * before we give up and ask the professional to contact the patient manually.
+     */
+    public const MAX_DELIVERY_ATTEMPTS = 3;
+
+    /**
      * Send reminder for an appointment via ALL channels with consent
-     * Returns array with results per channel
+     * Returns true if at least one channel succeeded.
      */
     public function sendReminder(Appointment $appointment): bool
+    {
+        // BUG-B7: prevent concurrent sends of the same reminder. Two cron ticks
+        // overlapping (or a sync running at the same time as send-reminders)
+        // could otherwise both decide this reminder is "pending" and send twice.
+        $lock = Cache::lock("nimbus:reminder:appt:{$appointment->id}", 120);
+        if (!$lock->get()) {
+            Log::info("Reminder skipped: lock held for appointment {$appointment->id}");
+            return false;
+        }
+
+        try {
+            return $this->doSendReminder($appointment);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    protected function doSendReminder(Appointment $appointment): bool
     {
         if (!$appointment->patient) {
             // Check if there's a patient code that wasn't found
@@ -36,7 +61,7 @@ class NotificationService
         }
 
         $patient = $appointment->patient;
-        
+
         // Determine which channels to send to (all with consent)
         $channelsToSend = [];
         if ($patient->consent_email && $patient->email) {
@@ -48,6 +73,22 @@ class NotificationService
 
         if (empty($channelsToSend)) {
             Log::warning("Patient {$patient->id} has no channels with consent");
+            return false;
+        }
+
+        // BUG-B7: cap retries. If this reminder has already failed too many times
+        // in the last 24h, stop trying and alert the professional so they can
+        // contact the patient another way.
+        $recentFailures = Communication::where('appointment_id', $appointment->id)
+            ->where('type', 'reminder')
+            ->where('status', 'failed')
+            ->where('created_at', '>=', now()->subHours(24))
+            ->count();
+
+        if ($recentFailures >= self::MAX_DELIVERY_ATTEMPTS) {
+            Log::error("Reminder give up: {$recentFailures} failed attempts for appointment {$appointment->id}");
+            $appointment->markReminderSent(); // stop the cron from retrying
+            $this->notifyProfessionalOfDeliveryFailure($appointment, $recentFailures);
             return false;
         }
 
@@ -337,5 +378,37 @@ class NotificationService
         }
 
         return User::find($userId);
+    }
+
+    /**
+     * Notify the professional that we couldn't deliver a reminder after
+     * MAX_DELIVERY_ATTEMPTS failures, so they can reach the patient manually.
+     */
+    protected function notifyProfessionalOfDeliveryFailure(Appointment $appointment, int $attempts): void
+    {
+        $patient = $appointment->patient;
+        if (!$patient || !$patient->user || empty($patient->user->email)) {
+            Log::warning("Cannot alert professional about delivery failure for appointment {$appointment->id}: no user email.");
+            return;
+        }
+
+        $when = $appointment->start_at?->format('d/m/Y H:i') ?? '—';
+        $subject = "[Nimbus] No se pudo avisar a {$patient->name}";
+        $body = "Hola {$patient->user->name},\n\n"
+              . "Hemos intentado enviar el recordatorio de la cita de {$patient->name} ({$when}) "
+              . "{$attempts} veces sin éxito en las últimas 24 horas.\n\n"
+              . "Datos del paciente:\n"
+              . "  • Email: " . ($patient->email ?: '—') . "\n"
+              . "  • Teléfono: " . ($patient->phone ?: '—') . "\n\n"
+              . "Te recomendamos contactar manualmente para confirmar la asistencia.\n\n"
+              . "Nimbus";
+
+        try {
+            Mail::raw($body, function ($message) use ($patient, $subject) {
+                $message->to($patient->user->email)->subject($subject);
+            });
+        } catch (Exception $e) {
+            Log::error("Failed to send delivery-failure alert to professional: " . $e->getMessage());
+        }
     }
 }

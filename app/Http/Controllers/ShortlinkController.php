@@ -48,15 +48,33 @@ class ShortlinkController extends Controller
             ]);
         }
 
-        // Execute action
         $action = $shortlink->action;
-        
+
+        // BUG-B2: if this shortlink was already used, do NOT re-execute the action
+        // (it would re-notify the professional, re-write timestamps, etc.).
+        // Show a friendly "already done" screen instead.
+        if ($shortlink->used) {
+            return view('shortlinks.success', [
+                'title' => 'Ya habías respondido',
+                'message' => match ($action) {
+                    'confirm' => 'Esta cita ya estaba confirmada. No hace falta hacer nada más.',
+                    'cancel' => 'Esta cita ya estaba cancelada. Hemos avisado a tu psicóloga.',
+                    'acknowledge_cancellation' => 'La cancelación ya estaba registrada.',
+                    default => 'Ya habías respondido a este aviso.',
+                },
+                'appointment' => $appointment,
+                'action' => $action,
+                'already_used' => true,
+            ]);
+        }
+
         switch ($action) {
             case 'confirm':
                 $appointment->confirm();
-                
+                $shortlink->markAsUsed($request->ip() ?? '', (string) $request->userAgent());
+
                 return view('shortlinks.success', [
-                    'title' => '✅ Cita confirmada',
+                    'title' => 'Cita confirmada',
                     'message' => 'Tu cita ha sido confirmada exitosamente.',
                     'appointment' => $appointment,
                     'action' => 'confirm',
@@ -64,16 +82,19 @@ class ShortlinkController extends Controller
 
             case 'cancel':
                 $appointment->cancel();
-                
+                $shortlink->markAsUsed($request->ip() ?? '', (string) $request->userAgent());
+
                 return view('shortlinks.success', [
-                    'title' => '❌ Cita cancelada',
+                    'title' => 'Cita cancelada',
                     'message' => 'Tu cita ha sido cancelada. Te confirmaremos la cancelación por email.',
                     'appointment' => $appointment,
                     'action' => 'cancel',
                 ]);
 
             case 'acknowledge_cancellation':
-                return $this->handleAcknowledgeCancellation($appointment);
+                $response = $this->handleAcknowledgeCancellation($appointment);
+                $shortlink->markAsUsed($request->ip() ?? '', (string) $request->userAgent());
+                return $response;
 
             default:
                 return view('shortlinks.error', [

@@ -73,14 +73,19 @@ class Appointment extends Model
 
     public function scopeNeedsReminder($query, int $hoursBefore = 48, int $windowMinutes = 15)
     {
-        $now = now();
-        // Send reminders around an exact offset (default: 48h before appointment)
-        $startWindow = $now->copy()->addHours($hoursBefore);
-        $endWindow = $startWindow->copy()->addMinutes($windowMinutes);
-        
-        return $query->whereBetween('start_at', [$startWindow, $endWindow])
-                     ->where('nimbus_status', 'pending')
-                     ->whereNull('reminder_sent_at');
+        // BUG-B3: self-healing window. Instead of a fragile 15-minute slot exactly
+        // $hoursBefore hours before start_at, we pick any appointment that is due
+        // within the next $hoursBefore hours and has not been notified yet.
+        // This way, if a cron tick is missed, the next one catches up.
+        //
+        // We keep the "don't notify last-minute appointments" rule (created at least
+        // 24h before the appointment), to preserve previous business behaviour.
+        return $query
+            ->where('start_at', '>', now())
+            ->where('start_at', '<=', now()->addHours($hoursBefore))
+            ->whereRaw('TIMESTAMPDIFF(HOUR, created_at, start_at) >= ?', [24])
+            ->where('nimbus_status', 'pending')
+            ->whereNull('reminder_sent_at');
     }
 
     public function scopeWithPatient($query)
@@ -160,13 +165,57 @@ class Appointment extends Model
 
     public function cancel(): void
     {
+        $wasConfirmed = $this->nimbus_status === 'confirmed';
+
         $this->update([
             'nimbus_status' => 'cancelled',
             'cancelled_at' => now(),
         ]);
 
+        // BUG-B2: if the appointment had been confirmed previously, its Google
+        // Calendar title was prefixed with "OK - ". Now that it's cancelled,
+        // remove the prefix so the agenda reflects reality.
+        if ($wasConfirmed) {
+            $this->removeGoogleCalendarTitlePrefix('OK - ');
+        }
+
         // Notify professional
         $this->notifyProfessional('cancelled');
+    }
+
+    /**
+     * Remove a leading prefix from the event title in Google Calendar.
+     */
+    protected function removeGoogleCalendarTitlePrefix(string $prefix): void
+    {
+        if (!$this->google_event_id || !$this->calendar_id || !$this->patient) {
+            return;
+        }
+
+        $user = $this->patient->user;
+        if (!$user) {
+            return;
+        }
+
+        $googleToken = \Illuminate\Support\Facades\DB::table('google_tokens')
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$googleToken) {
+            return;
+        }
+
+        try {
+            app(\App\Services\GoogleCalendarService::class)->removeEventTitlePrefix(
+                $this->calendar_id,
+                $this->google_event_id,
+                $prefix,
+                $googleToken->account_email,
+                $user->id
+            );
+        } catch (\Exception $e) {
+            Log::error("Failed to remove Google Calendar event title prefix: " . $e->getMessage());
+        }
     }
 
     public function isInNext24Hours(): bool
