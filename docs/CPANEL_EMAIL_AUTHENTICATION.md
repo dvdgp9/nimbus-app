@@ -3,7 +3,7 @@
 ## Scope
 
 - Application: `https://nimbus.wthefox.com`
-- SMTP sender: `citas@nimbus.wthefox.com`
+- SMTP sender: `noreply@nimbus.wthefox.com`
 - SMTP host: `nimbus.wthefox.com:587`
 - Mail transport: authenticated SMTP through the cPanel server
 - Audited: 2026-06-19
