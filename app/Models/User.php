@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -26,6 +28,26 @@ class User extends Authenticatable
         return $this->hasMany(Patient::class);
     }
 
+    public function getEmailLogoUrlAttribute(): ?string
+    {
+        if (! $this->email_logo_path) {
+            return null;
+        }
+
+        $logoUrl = Storage::disk('public')->url($this->email_logo_path);
+
+        return Str::startsWith($logoUrl, ['http://', 'https://'])
+            ? $logoUrl
+            : url($logoUrl);
+    }
+
+    public function getEmailSenderDisplayNameAttribute(): string
+    {
+        return $this->email_sender_name
+            ?: $this->name
+            ?: config('mail.from.name');
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -33,6 +55,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'email_sender_name',
+        'email_logo_path',
         'email',
         'password',
         'google_id',

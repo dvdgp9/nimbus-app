@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Patient;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
@@ -31,9 +32,12 @@ class TemplatedReminder extends Mailable
      */
     public function envelope(): Envelope
     {
+        $senderName = $this->patient->user?->email_sender_display_name
+            ?? config('mail.from.name');
+
         return new Envelope(
             subject: $this->emailSubject,
-            from: config('mail.from.address'),
+            from: new Address(config('mail.from.address'), $senderName),
         );
     }
 

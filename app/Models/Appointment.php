@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use App\Mail\AppointmentStatusChanged;
 
 class Appointment extends Model
@@ -225,7 +226,9 @@ class Appointment extends Model
 
     public function getFormattedDateAttribute(): string
     {
-        return $this->start_at->locale('es')->isoFormat('dddd D [de] MMMM [de] YYYY');
+        $date = $this->start_at->locale('es')->isoFormat('dddd D [de] MMMM');
+
+        return Str::ucfirst($date);
     }
 
     public function getFormattedTimeAttribute(): string

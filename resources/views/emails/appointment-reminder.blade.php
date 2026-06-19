@@ -1,9 +1,15 @@
 @php
-  $professionalName = optional(optional($patient)->user)->name ?? config('app.name');
+  $professional = optional($patient)->user;
+  $professionalName = optional($professional)->name ?? config('app.name');
+  $professionalLogoUrl = optional($professional)->email_logo_url;
   $patientFirstName = explode(' ', trim($patient->name))[0] ?? $patient->name;
   $preheader = 'Tu cita del ' . $appointment->formatted_date . ' a las ' . $appointment->formatted_time . '. Confirma o cancela en un clic.';
   $accent = '#3d5a80';
   $accentDark = '#2f4868';
+  $confirmColor = '#2e7d32';
+  $confirmColorDark = '#1b5e20';
+  $cancelColor = '#c62828';
+  $cancelColorDark = '#8e0000';
   $ink = '#1f2937';
   $muted = '#6b7280';
   $line = '#e5e7eb';
@@ -20,7 +26,8 @@
   <title>{{ $appointment->summary }}</title>
   <style>
     a { color: {{ $accent }}; }
-    a.btn-primary:hover { background: {{ $accentDark }} !important; }
+    a.btn-confirm:hover { background: {{ $confirmColorDark }} !important; }
+    a.btn-cancel:hover { background: {{ $cancelColorDark }} !important; }
     @media only screen and (max-width: 480px) {
       .container { padding: 32px 24px !important; }
       .stack { display: block !important; width: 100% !important; padding: 0 !important; }
@@ -42,12 +49,16 @@
 
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;width:100%;background:#ffffff;border:1px solid {{ $line }};border-radius:4px;">
 
-          {{-- Header: name of the practice, no graphics --}}
+          {{-- Header: professional logo, or name when no logo is configured --}}
           <tr>
             <td class="container" style="padding:40px 48px 0 48px;">
-              <p style="margin:0;font-family:Georgia,'Times New Roman',Times,serif;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:{{ $muted }};">
+              @if($professionalLogoUrl)
+              <img data-email-header="logo" src="{{ $professionalLogoUrl }}" alt="{{ $professionalName }}" width="200" style="display:block;width:auto;max-width:200px;height:auto;max-height:72px;border:0;outline:none;text-decoration:none;">
+              @else
+              <p data-email-header="name" style="margin:0;font-family:Georgia,'Times New Roman',Times,serif;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:{{ $muted }};">
                 {{ $professionalName }}
               </p>
+              @endif
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:20px;">
                 <tr><td style="border-top:1px solid {{ $line }};font-size:0;line-height:0;">&nbsp;</td></tr>
               </table>
@@ -99,13 +110,13 @@
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td class="stack" align="center" valign="middle" style="padding-right:6px;" width="50%">
-                    <a href="{{ $confirmUrl }}" class="btn-primary" style="display:block;background:{{ $accent }};color:#ffffff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:0.01em;padding:14px 20px;border:1px solid {{ $accent }};border-radius:2px;text-align:center;">
+                    <a data-email-action="confirm" href="{{ $confirmUrl }}" class="btn-confirm" style="display:block;background:{{ $confirmColor }};color:#ffffff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:0.01em;padding:14px 20px;border:1px solid {{ $confirmColor }};border-radius:2px;text-align:center;">
                       Confirmar asistencia
                     </a>
                   </td>
                   <td class="stack-gap" style="display:none;font-size:0;line-height:0;">&nbsp;</td>
                   <td class="stack" align="center" valign="middle" style="padding-left:6px;" width="50%">
-                    <a href="{{ $cancelUrl }}" style="display:block;background:#ffffff;color:{{ $ink }};text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:0.01em;padding:14px 20px;border:1px solid {{ $line }};border-radius:2px;text-align:center;">
+                    <a data-email-action="cancel" href="{{ $cancelUrl }}" class="btn-cancel" style="display:block;background:{{ $cancelColor }};color:#ffffff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:0.01em;padding:14px 20px;border:1px solid {{ $cancelColor }};border-radius:2px;text-align:center;">
                       No podré asistir
                     </a>
                   </td>

@@ -1,15 +1,19 @@
 @php
-  $professionalName = optional(optional($patient)->user)->name ?? config('app.name');
+  $professional = optional($patient)->user;
+  $professionalName = optional($professional)->name ?? config('app.name');
+  $professionalLogoUrl = optional($professional)->email_logo_url;
   $preheader = 'Tu cita del ' . $appointment->formatted_date . ' a las ' . $appointment->formatted_time . '.';
   $accent = '#3d5a80';
   $accentDark = '#2f4868';
+  $confirmColor = '#2e7d32';
+  $cancelColor = '#c62828';
   $ink = '#1f2937';
   $muted = '#6b7280';
   $line = '#e5e7eb';
   $page = '#f5f5f4';
 
-  $confirmBtn = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px auto;"><tr><td style="background:' . $accent . ';border:1px solid ' . $accent . ';border-radius:2px;"><a href="' . ($confirmUrl ?? '#') . '" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:0.01em;">Confirmar asistencia</a></td></tr></table>';
-  $cancelBtn  = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px auto;"><tr><td style="background:#ffffff;border:1px solid ' . $line . ';border-radius:2px;"><a href="' . ($cancelUrl ?? '#') . '" style="display:inline-block;padding:14px 28px;color:' . $ink . ';text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:0.01em;">No podré asistir</a></td></tr></table>';
+  $confirmBtn = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px auto;"><tr><td style="background:' . $confirmColor . ';border:1px solid ' . $confirmColor . ';border-radius:2px;"><a data-email-action="confirm" href="' . ($confirmUrl ?? '#') . '" style="display:inline-block;background:' . $confirmColor . ';color:#ffffff;padding:14px 28px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:0.01em;">Confirmar asistencia</a></td></tr></table>';
+  $cancelBtn  = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px auto;"><tr><td style="background:' . $cancelColor . ';border:1px solid ' . $cancelColor . ';border-radius:2px;"><a data-email-action="cancel" href="' . ($cancelUrl ?? '#') . '" style="display:inline-block;background:' . $cancelColor . ';color:#ffffff;padding:14px 28px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:0.01em;">No podré asistir</a></td></tr></table>';
   $rescheduleBtn = '<p style="margin:14px 0;text-align:center;font-family:Georgia,Times,serif;font-size:14px;color:' . $muted . ';">¿Necesitas cambiar el día? <a href="' . ($rescheduleUrl ?? '#') . '" style="color:' . $accent . ';text-decoration:underline;">Escríbeme por WhatsApp</a>.</p>';
 
   $processedBody = e($emailBody);
@@ -58,9 +62,13 @@
 
           <tr>
             <td class="container" style="padding:40px 48px 0 48px;">
-              <p style="margin:0;font-family:Georgia,'Times New Roman',Times,serif;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:{{ $muted }};">
+              @if($professionalLogoUrl)
+              <img data-email-header="logo" src="{{ $professionalLogoUrl }}" alt="{{ $professionalName }}" width="200" style="display:block;width:auto;max-width:200px;height:auto;max-height:72px;border:0;outline:none;text-decoration:none;">
+              @else
+              <p data-email-header="name" style="margin:0;font-family:Georgia,'Times New Roman',Times,serif;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:{{ $muted }};">
                 {{ $professionalName }}
               </p>
+              @endif
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:20px;">
                 <tr><td style="border-top:1px solid {{ $line }};font-size:0;line-height:0;">&nbsp;</td></tr>
               </table>

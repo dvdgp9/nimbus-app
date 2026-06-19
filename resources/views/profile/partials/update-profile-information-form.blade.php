@@ -13,7 +13,7 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
+    <form method="post" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="mt-6 space-y-6">
         @csrf
         @method('patch')
 
@@ -45,6 +45,49 @@
                     @endif
                 </div>
             @endif
+        </div>
+
+        <div>
+            <x-input-label for="email_sender_name" value="Nombre visible del remitente" />
+            <x-text-input
+                id="email_sender_name"
+                name="email_sender_name"
+                type="text"
+                class="mt-1 block w-full"
+                :value="old('email_sender_name', $user->email_sender_name)"
+                autocomplete="organization"
+                maxlength="255"
+            />
+            <p class="mt-1 text-sm text-gray-600">
+                Si se deja vacío, los emails se enviarán con tu nombre de perfil.
+            </p>
+            <x-input-error class="mt-2" :messages="$errors->get('email_sender_name')" />
+        </div>
+
+        <div>
+            <x-input-label for="email_logo" value="Logo para la cabecera del email" />
+
+            @if ($user->email_logo_path)
+                <div class="mt-2 mb-3 rounded-lg border border-gray-200 bg-white p-3">
+                    <img
+                        src="{{ Storage::disk('public')->url($user->email_logo_path) }}"
+                        alt="Logo actual"
+                        class="max-h-20 max-w-full object-contain"
+                    >
+                </div>
+            @endif
+
+            <input
+                id="email_logo"
+                name="email_logo"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+            >
+            <p class="mt-1 text-sm text-gray-600">
+                JPG, PNG o WebP, máximo 2 MB. Si subes un logo, sustituirá al nombre en la cabecera.
+            </p>
+            <x-input-error class="mt-2" :messages="$errors->get('email_logo')" />
         </div>
 
         <div class="flex items-center gap-4">

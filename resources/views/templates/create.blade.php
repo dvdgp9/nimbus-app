@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const smsSampleValues = {
     'patient_first_name': 'María',
     'patient_name': 'María García López',
-    'appointment_date': 'lunes 27 de enero de 2026',
+    'appointment_date': 'Lunes 27 de enero',
     'appointment_time': '10:00',
     'appointment_summary': 'Sesión de terapia',
     'professional_name': @json(auth()->user()->name ?? 'tu psicóloga'),
