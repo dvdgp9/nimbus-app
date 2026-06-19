@@ -81,6 +81,15 @@ class EmailReminderHeaderTest extends TestCase
         }
     }
 
+    public function test_reminder_emails_do_not_add_nonessential_custom_headers(): void
+    {
+        [$appointment, $patient] = $this->emailModels();
+
+        foreach ($this->mailables($appointment, $patient) as $mailable) {
+            $this->assertFalse(method_exists($mailable, 'headers'));
+        }
+    }
+
     /**
      * @return array{Appointment, Patient}
      */
