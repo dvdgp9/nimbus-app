@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -34,11 +32,9 @@ class User extends Authenticatable
             return null;
         }
 
-        $logoUrl = Storage::disk('public')->url($this->email_logo_path);
-
-        return Str::startsWith($logoUrl, ['http://', 'https://'])
-            ? $logoUrl
-            : url($logoUrl);
+        return route('email-logo.show', [
+            'filename' => basename($this->email_logo_path),
+        ]);
     }
 
     public function getEmailSenderDisplayNameAttribute(): string

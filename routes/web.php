@@ -11,12 +11,17 @@ use App\Http\Controllers\PatientsController;
 use App\Http\Controllers\SmsTestController;
 use App\Http\Controllers\MessageTemplatesController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\EmailLogoController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('/healthz', function () {
     return response()->json(['status' => 'ok'], 200);
 });
+
+Route::get('/email-logo/{filename}', EmailLogoController::class)
+    ->where('filename', '[A-Za-z0-9._-]+')
+    ->name('email-logo.show');
 
 // Shortlink actions (public for patients)
 Route::get('/link/{token}', [ShortlinkController::class, 'handle'])->name('shortlink.handle');

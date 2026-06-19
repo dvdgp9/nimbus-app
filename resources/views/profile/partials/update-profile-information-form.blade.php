@@ -1,10 +1,10 @@
-<section>
+<section class="profile-section">
     <header>
         <h2 class="text-lg font-medium text-gray-900">
             {{ __('Profile Information') }}
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600">
+        <p class="profile-description mt-1 text-sm">
             {{ __("Update your account's profile information and email address.") }}
         </p>
     </header>
@@ -30,10 +30,10 @@
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
                 <div>
-                    <p class="text-sm mt-2 text-gray-800">
+                    <p class="profile-help text-sm mt-2">
                         {{ __('Your email address is unverified.') }}
 
-                        <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button form="send-verification" class="profile-inline-action underline text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-400/40">
                             {{ __('Click here to re-send the verification email.') }}
                         </button>
                     </p>
@@ -58,7 +58,7 @@
                 autocomplete="organization"
                 maxlength="255"
             />
-            <p class="mt-1 text-sm text-gray-600">
+            <p class="profile-help mt-1 text-sm">
                 Si se deja vacío, los emails se enviarán con tu nombre de perfil.
             </p>
             <x-input-error class="mt-2" :messages="$errors->get('email_sender_name')" />
@@ -70,7 +70,7 @@
             @if ($user->email_logo_path)
                 <div class="mt-2 mb-3 rounded-lg border border-gray-200 bg-white p-3">
                     <img
-                        src="{{ Storage::disk('public')->url($user->email_logo_path) }}"
+                        src="{{ $user->email_logo_url }}"
                         alt="Logo actual"
                         class="max-h-20 max-w-full object-contain"
                     >
@@ -82,16 +82,16 @@
                 name="email_logo"
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                class="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+                class="profile-file-input mt-1 block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:px-4 file:py-2 file:text-sm file:font-medium"
             >
-            <p class="mt-1 text-sm text-gray-600">
+            <p class="profile-help mt-1 text-sm">
                 JPG, PNG o WebP, máximo 2 MB. Si subes un logo, sustituirá al nombre en la cabecera.
             </p>
             <x-input-error class="mt-2" :messages="$errors->get('email_logo')" />
         </div>
 
         <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+            <x-primary-button class="profile-save-button">{{ __('Save') }}</x-primary-button>
 
             @if (session('status') === 'profile-updated')
                 <p
@@ -99,7 +99,7 @@
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600"
+                    class="profile-saved text-sm"
                 >{{ __('Saved.') }}</p>
             @endif
         </div>

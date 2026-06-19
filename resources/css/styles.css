@@ -240,6 +240,48 @@ nav a:hover::after { width: 100%; }
   @apply bg-gradient-to-br from-cyan-400 to-indigo-500 border-transparent;
 }
 
+/* Dark profile forms */
+.profile-section > header h2 {
+  color: rgba(255, 255, 255, 0.92);
+}
+.profile-section > header .profile-description,
+.profile-section .profile-help {
+  color: rgba(255, 255, 255, 0.62);
+}
+.profile-section > form > div > label {
+  color: rgba(255, 255, 255, 0.82);
+}
+.profile-section .profile-inline-action {
+  color: rgba(103, 232, 249, 0.92);
+}
+.profile-section .profile-inline-action:hover {
+  color: #cffafe;
+}
+.profile-section .profile-file-input {
+  color: rgba(255, 255, 255, 0.68);
+}
+.profile-section .profile-file-input::file-selector-button {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.profile-section .profile-file-input::file-selector-button:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+.profile-section .profile-file-input::file-selector-button:active {
+  transform: translateY(1px);
+}
+.profile-section .profile-save-button {
+  color: #ffffff;
+  background: #2563eb;
+}
+.profile-section .profile-save-button:hover {
+  background: #1d4ed8;
+}
+.profile-section .profile-saved {
+  color: #6ee7b7;
+}
+
 /* Alert styles */
 .alert {
   @apply rounded-lg px-4 py-3 text-sm backdrop-blur-sm;

@@ -163,6 +163,36 @@ class ProfileTest extends TestCase
         Storage::disk('public')->assertExists('email-logos/current.png');
     }
 
+    public function test_current_email_logo_is_served_through_the_public_laravel_route(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('email-logos/current.png', 'logo-content');
+        User::factory()->create([
+            'email_logo_path' => 'email-logos/current.png',
+        ]);
+
+        $response = $this->get(route('email-logo.show', ['filename' => 'current.png']));
+
+        $response->assertOk();
+        $cacheControl = $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('public', $cacheControl);
+        $this->assertStringContainsString('max-age=604800', $cacheControl);
+        $this->assertStringContainsString('immutable', $cacheControl);
+        $this->assertSame('logo-content', $response->streamedContent());
+    }
+
+    public function test_unknown_or_replaced_email_logo_is_not_publicly_served(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('email-logos/old.png', 'old-logo');
+        User::factory()->create([
+            'email_logo_path' => 'email-logos/current.png',
+        ]);
+
+        $this->get(route('email-logo.show', ['filename' => 'old.png']))
+            ->assertNotFound();
+    }
+
     public function test_user_can_delete_their_account(): void
     {
         $user = User::factory()->create();

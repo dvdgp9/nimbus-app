@@ -22,7 +22,7 @@ class EmailReminderHeaderTest extends TestCase
 
         foreach ($this->renderBothMailables($appointment, $patient) as $html) {
             $this->assertStringContainsString('data-email-header="logo"', $html);
-            $this->assertStringContainsString('src="https://nimbus.test/storage/email-logos/laura.png"', $html);
+            $this->assertStringContainsString('src="https://nimbus.test/email-logo/laura.png"', $html);
             $this->assertStringNotContainsString('data-email-header="name"', $html);
         }
     }

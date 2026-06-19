@@ -370,7 +370,7 @@
                   </div>
                   <div class="bg-gray-800 rounded-2xl p-4 min-h-[200px]">
                     <div class="text-xs text-white/40 text-center mb-3">Mensaje de texto</div>
-                    <div class="bg-emerald-600/90 text-white p-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed shadow-lg" id="preview-body">
+                    <div class="whitespace-pre-wrap break-words bg-emerald-600/90 text-white p-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed shadow-lg" id="preview-body">
                       {{ $template->getPreview() }}
                     </div>
                   </div>
