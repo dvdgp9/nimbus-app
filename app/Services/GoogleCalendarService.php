@@ -63,6 +63,7 @@ class GoogleCalendarService
                     'attendee_name' => $attendee?->getDisplayName(),
                     'attendee_phone' => null,
                     'hangout_link' => $event->getHangoutLink(),
+                    'color_id' => $event->getColorId(),
                     'raw' => $event,
                 ];
             }
@@ -111,6 +112,7 @@ class GoogleCalendarService
                 'hangout_link' => $e['hangout_link'],
                 'patient_id' => $patientId,
                 'message_code' => $messageCode,
+                'google_color_id' => $e['color_id'] ?? null,
                 'last_synced_at' => now(),
                 'raw_payload' => json_encode($e['raw']),
                 'updated_at' => now(),

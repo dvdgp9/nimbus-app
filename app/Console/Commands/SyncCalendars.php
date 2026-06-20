@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\GoogleCalendarService;
 use App\Services\FirstSessionService;
 use App\Services\NotificationService;
+use App\Services\YellowAppointmentReviewService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,7 +33,8 @@ class SyncCalendars extends Command
     public function __construct(
         private GoogleCalendarService $calendar,
         private FirstSessionService $firstSessionService,
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private YellowAppointmentReviewService $yellowReviews,
     ) {
         parent::__construct();
     }
@@ -125,6 +127,11 @@ class SyncCalendars extends Command
                 $unknownCodesProcessed = $this->processUnknownPatientCodes($account->user_id);
                 if ($unknownCodesProcessed > 0) {
                     $this->info("   ⚠️ Notified {$unknownCodesProcessed} unknown patient code(s)");
+                }
+
+                $yellowReviewsProcessed = $this->processYellowAppointments($account->user_id);
+                if ($yellowReviewsProcessed > 0) {
+                    $this->info("   Notified {$yellowReviewsProcessed} yellow appointment(s)");
                 }
 
             } catch (\Google\Service\Exception $e) {
@@ -244,5 +251,34 @@ class SyncCalendars extends Command
         }
 
         return $processed;
+    }
+
+    protected function processYellowAppointments(int $userId): int
+    {
+        $user = User::find($userId);
+        if (! $user) {
+            return 0;
+        }
+
+        $appointments = Appointment::query()
+            ->with('patient.user')
+            ->where('google_color_id', Appointment::GOOGLE_YELLOW_COLOR_ID)
+            ->whereNull('professional_review_notified_at')
+            ->whereNull('professional_reviewed_at')
+            ->whereNull('reminder_sent_at')
+            ->where('nimbus_status', 'pending')
+            ->whereNotNull('patient_id')
+            ->where('start_at', '>', now())
+            ->whereIn('calendar_id', function ($query) use ($userId) {
+                $query->select('calendar_id')
+                    ->from('connected_calendars')
+                    ->where('user_id', $userId)
+                    ->where('enabled', 1);
+            })
+            ->get();
+
+        return $appointments->filter(
+            fn (Appointment $appointment) => $this->yellowReviews->notify($appointment, $user)
+        )->count();
     }
 }

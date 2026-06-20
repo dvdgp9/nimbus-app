@@ -47,11 +47,7 @@
             </p>
 
             @if(isset($appointment))
-              <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-white/80">
-                <div>
-                  <div class="text-xs uppercase tracking-wide text-white/40 mb-1">Título</div>
-                  <div>{{ $appointment->summary }}</div>
-                </div>
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-white/80">
                 <div>
                   <div class="text-xs uppercase tracking-wide text-white/40 mb-1">Fecha</div>
                   <div>{{ $appointment->formatted_date }}</div>

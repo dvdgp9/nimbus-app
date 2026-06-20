@@ -14,6 +14,8 @@ use App\Mail\AppointmentStatusChanged;
 
 class Appointment extends Model
 {
+    public const GOOGLE_YELLOW_COLOR_ID = '5';
+
     protected $fillable = [
         'google_event_id',
         'calendar_id',
@@ -25,8 +27,12 @@ class Appointment extends Model
         'hangout_link',
         'patient_id',
         'message_code',
+        'google_color_id',
         'first_session_notified',
         'unknown_patient_notified',
+        'professional_review_notified_at',
+        'professional_reviewed_at',
+        'professional_review_decision',
         'nimbus_status',
         'reminder_sent_at',
         'confirmed_at',
@@ -42,6 +48,8 @@ class Appointment extends Model
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'last_synced_at' => 'datetime',
+        'professional_review_notified_at' => 'datetime',
+        'professional_reviewed_at' => 'datetime',
         'raw_payload' => 'array',
     ];
 
@@ -86,6 +94,11 @@ class Appointment extends Model
             ->where('start_at', '<=', now()->addHours($hoursBefore))
             ->whereRaw('TIMESTAMPDIFF(HOUR, created_at, start_at) >= ?', [24])
             ->where('nimbus_status', 'pending')
+            ->where(function ($query) {
+                $query->whereNull('google_color_id')
+                    ->orWhere('google_color_id', '!=', self::GOOGLE_YELLOW_COLOR_ID)
+                    ->orWhere('professional_review_decision', 'confirmed');
+            })
             ->whereNull('reminder_sent_at');
     }
 
@@ -103,6 +116,12 @@ class Appointment extends Model
         return $this->nimbus_status === 'pending'
             && is_null($this->reminder_sent_at)
             && $this->start_at->isFuture();
+    }
+
+    public function requiresProfessionalReview(): bool
+    {
+        return $this->google_color_id === self::GOOGLE_YELLOW_COLOR_ID
+            && $this->professional_review_decision !== 'confirmed';
     }
 
     public function markReminderSent(): void

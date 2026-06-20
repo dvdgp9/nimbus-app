@@ -49,6 +49,11 @@ class NotificationService
 
     protected function doSendReminder(Appointment $appointment): bool
     {
+        if ($appointment->requiresProfessionalReview()) {
+            Log::info("Reminder blocked pending professional review for yellow appointment {$appointment->id}");
+            return false;
+        }
+
         if (!$appointment->patient) {
             // Check if there's a patient code that wasn't found
             $suggestedCode = $appointment->suggested_patient_code;

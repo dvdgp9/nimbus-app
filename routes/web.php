@@ -12,6 +12,7 @@ use App\Http\Controllers\SmsTestController;
 use App\Http\Controllers\MessageTemplatesController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\EmailLogoController;
+use App\Http\Controllers\ProfessionalAppointmentReviewController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -22,6 +23,13 @@ Route::get('/healthz', function () {
 Route::get('/email-logo/{filename}', EmailLogoController::class)
     ->where('filename', '[A-Za-z0-9._-]+')
     ->name('email-logo.show');
+
+Route::get('/appointment-review/{appointment}/{decision}', [ProfessionalAppointmentReviewController::class, 'show'])
+    ->middleware('signed')
+    ->name('professional-review.show');
+Route::post('/appointment-review/{appointment}/{decision}', [ProfessionalAppointmentReviewController::class, 'decide'])
+    ->middleware('signed')
+    ->name('professional-review.decide');
 
 // Shortlink actions (public for patients)
 Route::get('/link/{token}', [ShortlinkController::class, 'handle'])->name('shortlink.handle');
