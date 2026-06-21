@@ -46,4 +46,8 @@ return [
         'sender' => env('ACUMBAMAIL_SMS_SENDER', 'Nimbus'),
     ],
 
+    'whatsapp' => [
+        'reschedule_number' => env('WHATSAPP_RESCHEDULE_NUMBER', '34621072649'),
+    ],
+
 ];

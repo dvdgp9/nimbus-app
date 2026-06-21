@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Shortlink;
 use App\Models\Appointment;
 use App\Services\GoogleCalendarService;
+use App\Services\RescheduleLinkService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -49,6 +50,11 @@ class ShortlinkController extends Controller
         }
 
         $action = $shortlink->action;
+
+        // Rescheduling opens WhatsApp and does not consume the confirmation/cancellation response.
+        if ($action === 'reschedule') {
+            return redirect()->away(RescheduleLinkService::forAppointment($appointment));
+        }
 
         // BUG-B2: if this shortlink was already used, do NOT re-execute the action
         // (it would re-notify the professional, re-write timestamps, etc.).
