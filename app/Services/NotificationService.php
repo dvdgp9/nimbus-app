@@ -135,6 +135,14 @@ class NotificationService
             }
         }
 
+        if (($results['email'] ?? false) && array_key_exists('sms', $results) && !$results['sms']) {
+            Log::warning('Reminder partially delivered: email succeeded but SMS failed', [
+                'appointment_id' => $appointment->id,
+                'patient_id' => $patient->id,
+                'phone' => $patient->phone,
+            ]);
+        }
+
         // Return true if at least one channel succeeded
         return in_array(true, $results, true);
     }

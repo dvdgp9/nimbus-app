@@ -18,3 +18,10 @@
 - A test inspects the outgoing request and verifies that decoding `messages` restores the exact multiline body.
 - Acumbamail's public page does not document carrier-specific rendering of line breaks, so final display must also be checked with a real SMS.
 
+## Recipient format and delivery diagnostics
+
+- Nimbus normalizes Spanish formats such as `600111222`, `+34600111222`, `34600111222`, and `0034600111222` to `+34600111222`.
+- International numbers must include their country prefix.
+- Acumbamail may return the successful status as `0` or `"0"`; Nimbus accepts both.
+- API acceptance does not prove handset delivery. Check **Reports > Individual sends** in Acumbamail for `Delivered`, `Sent`, or `Undelivered`.
+- Nimbus stores the provider ID and logs partial delivery when email succeeds but SMS fails.

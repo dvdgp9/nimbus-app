@@ -98,7 +98,9 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureOnboardingCompleted::class
 
     // SMS Test
     Route::get('/sms/test', [SmsTestController::class, 'index'])->name('sms.test');
-    Route::post('/sms/test', [SmsTestController::class, 'send'])->name('sms.send');
+    Route::post('/sms/test', [SmsTestController::class, 'send'])
+        ->middleware('throttle:5,1')
+        ->name('sms.send');
 
     // Message Templates
     Route::resource('templates', MessageTemplatesController::class)->except(['show']);

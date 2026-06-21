@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Services\AcumbamailService;
 use Exception;
+use InvalidArgumentException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class SmsTestController extends Controller
 {
@@ -39,11 +42,21 @@ class SmsTestController extends Controller
             $acumbamail = app(AcumbamailService::class);
             $smsId = $acumbamail->sendSMS($validated['phone'], $validated['message']);
 
-            return back()->with('success', "SMS enviado correctamente. ID: {$smsId}");
+            return back()->with('success', "SMS aceptado por Acumbamail. ID: {$smsId}. Comprueba ahora si llega al teléfono.");
+        } catch (InvalidArgumentException $e) {
+            throw ValidationException::withMessages([
+                'phone' => $e->getMessage(),
+            ]);
         } catch (Exception $e) {
+            Log::error('Test SMS failed', [
+                'user_id' => $request->user()->id,
+                'phone' => $validated['phone'],
+                'error' => $e->getMessage(),
+            ]);
+
             return back()
                 ->withInput()
-                ->withErrors(['sms' => 'Error al enviar SMS: ' . $e->getMessage()]);
+                ->withErrors(['sms' => 'No se pudo enviar el SMS. Revisa el registro de Nimbus y el informe de Acumbamail.']);
         }
     }
 }

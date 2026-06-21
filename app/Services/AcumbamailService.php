@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Exception;
+use InvalidArgumentException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -28,11 +29,12 @@ class AcumbamailService
     public function sendSMS(string $to, string $message): string
     {
         try {
+            $recipient = self::formatPhoneNumber($to);
             $response = Http::asForm()->post($this->apiUrl . 'sendSMS/', [
                 'auth_token' => $this->authToken,
                 'messages' => json_encode([
                     [
-                        'recipient' => $this->formatPhoneNumber($to),
+                        'recipient' => $recipient,
                         'body' => $message,
                         'sender' => $this->sender,
                     ]
@@ -48,16 +50,21 @@ class AcumbamailService
             // Check individual message status
             $messageResult = $data['messages'][0] ?? null;
             
-            if (!$messageResult || $messageResult['status'] !== 0) {
+            if (!$messageResult || (int) ($messageResult['status'] ?? -1) !== 0) {
                 $error = $messageResult['error'] ?? 'Unknown error';
                 throw new Exception("Acumbamail SMS error: {$error}");
+            }
+
+            if (!isset($messageResult['id'])) {
+                throw new Exception('Acumbamail SMS error: missing message id');
             }
 
             $smsId = (string) $messageResult['id'];
 
             Log::info("SMS sent via Acumbamail", [
                 'id' => $smsId,
-                'to' => $to,
+                'to' => $recipient,
+                'status' => (int) $messageResult['status'],
                 'credits' => $messageResult['credits'] ?? null,
             ]);
 
@@ -101,15 +108,34 @@ class AcumbamailService
      */
     public static function formatPhoneNumber(string $phone): string
     {
-        // Remove spaces, dashes, parentheses
-        $phone = preg_replace('/[\s\-\(\)]/', '', $phone);
-        
-        // Ensure it starts with +
-        if (!str_starts_with($phone, '+')) {
-            // Assume Spain by default
-            $phone = '+34' . ltrim($phone, '0');
+        $phone = trim($phone);
+        $hasPlus = str_starts_with($phone, '+');
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (!$digits) {
+            throw new InvalidArgumentException('El teléfono no contiene ningún número.');
         }
-        
-        return $phone;
+
+        if ($hasPlus) {
+            return '+' . $digits;
+        }
+
+        if (str_starts_with($digits, '00')) {
+            return '+' . substr($digits, 2);
+        }
+
+        if (strlen($digits) === 9) {
+            return '+34' . $digits;
+        }
+
+        if (str_starts_with($digits, '34') && strlen($digits) === 11) {
+            return '+' . $digits;
+        }
+
+        if (strlen($digits) >= 10 && strlen($digits) <= 15) {
+            return '+' . $digits;
+        }
+
+        throw new InvalidArgumentException('Usa un teléfono español de 9 dígitos o un número internacional con prefijo.');
     }
 }

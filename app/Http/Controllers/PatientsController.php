@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Patient;
+use App\Services\AcumbamailService;
 use App\Services\PatientImportService;
+use InvalidArgumentException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PatientsController extends Controller
 {
@@ -157,6 +160,7 @@ class PatientsController extends Controller
         
         // Normalize code to uppercase
         $validated['code'] = strtoupper($validated['code']);
+        $validated['phone'] = $this->normalizePhone($validated['phone'] ?? null);
         
         // Set consent date if any consent is given
         if ($validated['consent_email'] ?? false || 
@@ -245,6 +249,7 @@ class PatientsController extends Controller
 
         // Normalize code to uppercase
         $validated['code'] = strtoupper($validated['code']);
+        $validated['phone'] = $this->normalizePhone($validated['phone'] ?? null);
         
         // Update consent date if consent is being given for the first time
         $consentChanged = false;
@@ -283,5 +288,20 @@ class PatientsController extends Controller
 
         return redirect()->route('patients.index')
             ->with('status', 'Paciente eliminado exitosamente');
+    }
+
+    private function normalizePhone(?string $phone): ?string
+    {
+        if ($phone === null || trim($phone) === '') {
+            return null;
+        }
+
+        try {
+            return AcumbamailService::formatPhoneNumber($phone);
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'phone' => $exception->getMessage(),
+            ]);
+        }
     }
 }

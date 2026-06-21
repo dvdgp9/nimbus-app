@@ -50,6 +50,9 @@
                         <x-dropdown-link :href="route('calendars.index')">
                             Calendarios
                         </x-dropdown-link>
+                        <x-dropdown-link :href="route('sms.test')">
+                            Probar SMS
+                        </x-dropdown-link>
 
                         <div class="border-t border-white/10 my-1"></div>
 

@@ -8,6 +8,14 @@
       <p>Personaliza los recordatorios que se envían a tus pacientes</p>
     </div>
     <div class="flex gap-2">
+      @if($channel === 'sms')
+        <a href="{{ route('sms.test') }}" class="btn bg-white/5 hover:bg-white/10 text-white border border-white/10">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+          </svg>
+          <span>Enviar SMS de prueba</span>
+        </a>
+      @endif
       <a href="{{ route('templates.create', ['channel' => $channel]) }}" class="btn btn-primary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>

@@ -47,7 +47,7 @@ class Communication extends Model
     /**
      * Helper methods
      */
-    public function markAsSent(string $providerId = null): void
+    public function markAsSent(?string $providerId = null): void
     {
         $this->update([
             'status' => 'sent',
