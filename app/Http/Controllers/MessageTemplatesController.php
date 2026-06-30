@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\RescheduleLinkService;
 use App\Models\MessageTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -353,7 +354,7 @@ class MessageTemplatesController extends Controller
             'professional_name' => $professionalName,
             'confirm_link' => url('/link/preview-confirm'),
             'cancel_link' => url('/link/preview-cancel'),
-            'reschedule_link' => 'https://wa.me/?text=Cambiar%20cita',
+            'reschedule_link' => RescheduleLinkService::forAppointment($appointment),
             'hangout_link' => '',
         ];
 

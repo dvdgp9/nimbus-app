@@ -4,6 +4,8 @@ namespace App\Services;
 
 use Exception;
 use InvalidArgumentException;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -12,6 +14,15 @@ class AcumbamailService
     protected string $authToken;
     protected string $sender;
     protected string $apiUrl = 'https://acumbamail.com/api/1/';
+
+    /** Total HTTP attempts (1 initial + retries) for transient Acumbamail failures. */
+    protected int $maxAttempts = 3;
+
+    /** Base backoff between attempts, in milliseconds (grows linearly per attempt). */
+    protected int $retryBackoffMs = 500;
+
+    /** HTTP request timeout in seconds. */
+    protected int $timeout = 15;
 
     public function __construct()
     {
@@ -30,7 +41,7 @@ class AcumbamailService
     {
         try {
             $recipient = self::formatPhoneNumber($to);
-            $response = Http::asForm()->post($this->apiUrl . 'sendSMS/', [
+            $response = $this->postWithRetry('sendSMS/', [
                 'auth_token' => $this->authToken,
                 'messages' => json_encode([
                     [
@@ -84,7 +95,7 @@ class AcumbamailService
     public function getCredits(): ?float
     {
         try {
-            $response = Http::asForm()->post($this->apiUrl . 'getCreditsSMS/', [
+            $response = $this->postWithRetry('getCreditsSMS/', [
                 'auth_token' => $this->authToken,
             ]);
 
@@ -101,6 +112,57 @@ class AcumbamailService
             Log::error("Failed to fetch Acumbamail credits: " . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * POST to the Acumbamail API with a bounded timeout and retries for
+     * transient failures.
+     *
+     * Acumbamail's nginx layer intermittently answers a perfectly valid
+     * endpoint with "404 Not Found" (see app log 2026-06-20 and 2026-06-27),
+     * and connections occasionally time out (cURL 28, 2026-01-29). Without a
+     * retry, a single blip silently drops the SMS forever. We therefore retry
+     * on connection errors and on transient HTTP statuses (404, 408, 429, 5xx)
+     * with a small linear backoff. After the attempts are exhausted we return
+     * the last response so the caller's existing !successful() handling still
+     * produces a meaningful error message.
+     */
+    protected function postWithRetry(string $path, array $payload): Response
+    {
+        $response = null;
+
+        for ($attempt = 1; $attempt <= $this->maxAttempts; $attempt++) {
+            try {
+                $response = Http::asForm()
+                    ->timeout($this->timeout)
+                    ->post($this->apiUrl . $path, $payload);
+
+                if ($attempt < $this->maxAttempts && $this->isTransientStatus($response->status())) {
+                    Log::warning("Acumbamail transient HTTP {$response->status()} on {$path}, retrying ({$attempt}/{$this->maxAttempts})");
+                    usleep($this->retryBackoffMs * 1000 * $attempt);
+                    continue;
+                }
+
+                return $response;
+            } catch (ConnectionException $e) {
+                if ($attempt >= $this->maxAttempts) {
+                    throw $e;
+                }
+                Log::warning("Acumbamail connection error on {$path}, retrying ({$attempt}/{$this->maxAttempts}): " . $e->getMessage());
+                usleep($this->retryBackoffMs * 1000 * $attempt);
+            }
+        }
+
+        return $response;
+    }
+
+    /**
+     * Whether an HTTP status from Acumbamail is worth retrying. 404 is included
+     * on purpose: their nginx returns it transiently for a valid endpoint.
+     */
+    protected function isTransientStatus(int $status): bool
+    {
+        return in_array($status, [404, 408, 429], true) || $status >= 500;
     }
 
     /**

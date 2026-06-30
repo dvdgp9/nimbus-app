@@ -115,9 +115,21 @@ class NotificationService
         ];
 
         $results = [];
-        
+
         // Send via ALL channels with consent
         foreach ($channelsToSend as $channel) {
+            // Idempotency: if a previous run already delivered this channel,
+            // don't resend it. This lets the cron retry a *failed* channel
+            // (e.g. SMS) on a later tick without duplicating one that already
+            // succeeded (e.g. email). Without this, a transient SMS failure
+            // would either be lost (if we marked the reminder done) or cause
+            // duplicate emails (if we didn't).
+            if ($this->channelAlreadySent($appointment, $channel)) {
+                $results[$channel] = true;
+                Log::info("Reminder channel {$channel} already sent for appointment {$appointment->id}, skipping");
+                continue;
+            }
+
             try {
                 $success = match($channel) {
                     'email' => $this->sendEmail($appointment, $patient, $data),
@@ -125,7 +137,7 @@ class NotificationService
                     default => false,
                 };
                 $results[$channel] = $success;
-                
+
                 if ($success) {
                     Log::info("Reminder sent via {$channel} for appointment {$appointment->id}");
                 }
@@ -141,6 +153,15 @@ class NotificationService
                 'patient_id' => $patient->id,
                 'phone' => $patient->phone,
             ]);
+        }
+
+        // Only consider the reminder "sent" (and stop the cron from retrying)
+        // once EVERY consented channel has succeeded. If any channel failed,
+        // we leave the appointment pending so the next cron tick retries just
+        // the failed channel(s) — capped by MAX_DELIVERY_ATTEMPTS above.
+        $allChannelsSucceeded = !empty($results) && !in_array(false, $results, true);
+        if ($allChannelsSucceeded) {
+            $appointment->markReminderSent();
         }
 
         // Return true if at least one channel succeeded
@@ -169,6 +190,20 @@ class NotificationService
             'reschedule_link' => $rescheduleLink,
             'hangout_link' => $appointment->hangout_link ?? '',
         ];
+    }
+
+    /**
+     * Has this reminder channel already been delivered for this appointment?
+     * Used for idempotent retries so a previously-sent channel is not resent
+     * when the cron retries the appointment for a different failed channel.
+     */
+    protected function channelAlreadySent(Appointment $appointment, string $channel): bool
+    {
+        return Communication::where('appointment_id', $appointment->id)
+            ->where('channel', $channel)
+            ->where('type', 'reminder')
+            ->whereIn('status', ['sent', 'delivered'])
+            ->exists();
     }
 
     /**
@@ -259,8 +294,7 @@ class NotificationService
             }
             
             $communication->markAsSent();
-            $appointment->markReminderSent();
-            
+
             Log::info("Email reminder sent to {$patient->email} for appointment {$appointment->id}");
             return true;
         } catch (Exception $e) {
@@ -298,8 +332,7 @@ class NotificationService
             $smsId = $acumbamailService->sendSMS($patient->phone, $message);
             
             $communication->markAsSent($smsId);
-            $appointment->markReminderSent();
-            
+
             Log::info("SMS reminder sent to {$patient->phone} for appointment {$appointment->id}");
             return true;
         } catch (Exception $e) {

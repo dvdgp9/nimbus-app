@@ -22,4 +22,15 @@ class RescheduleLinkServiceTest extends TestCase
             $url
         );
     }
+
+    public function test_the_link_always_contains_a_whatsapp_recipient(): void
+    {
+        config(['services.whatsapp.reschedule_number' => '34621072649']);
+        $appointment = new Appointment(['start_at' => '2026-06-25 10:00:00']);
+
+        $this->assertStringStartsWith(
+            'https://wa.me/34621072649?text=',
+            RescheduleLinkService::forAppointment($appointment)
+        );
+    }
 }
