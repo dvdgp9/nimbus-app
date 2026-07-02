@@ -7,6 +7,7 @@ use Exception;
 use InvalidArgumentException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SmsTestController extends Controller
@@ -31,11 +32,11 @@ class SmsTestController extends Controller
     {
         $validated = $request->validate([
             'phone' => 'required|string|max:20',
-            'message' => 'required|string|max:160',
+            'message' => 'required|string|max:2000',
         ], [
             'phone.required' => 'El número de teléfono es obligatorio.',
             'message.required' => 'El mensaje es obligatorio.',
-            'message.max' => 'El mensaje no puede superar los 160 caracteres.',
+            'message.max' => 'El mensaje no puede superar los 2000 caracteres.',
         ]);
 
         try {
@@ -54,9 +55,13 @@ class SmsTestController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
+            // Surface the raw provider response (tags/whitespace stripped) so the
+            // test tool shows exactly what Acumbamail returned, e.g. the nginx 404.
+            $detail = trim(preg_replace('/\s+/', ' ', strip_tags($e->getMessage())));
+
             return back()
                 ->withInput()
-                ->withErrors(['sms' => 'No se pudo enviar el SMS. Revisa el registro de Nimbus y el informe de Acumbamail.']);
+                ->withErrors(['sms' => 'No se pudo enviar el SMS. Respuesta de Acumbamail: ' . Str::limit($detail, 300)]);
         }
     }
 }
