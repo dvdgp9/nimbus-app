@@ -41,6 +41,13 @@ class AcumbamailService
     {
         try {
             $recipient = self::formatPhoneNumber($to);
+
+            // Encode the payload as raw UTF-8. Without JSON_UNESCAPED_UNICODE,
+            // json_encode() rewrites emoji as escaped UTF-16 surrogate-pair
+            // sequences (backslash-u...), which Acumbamail's gateway rejects
+            // with an nginx 404. Sending raw UTF-8 matches Acumbamail's official
+            // PHP library and lets emoji through. Accents were always accepted,
+            // so they were never the problem.
             $response = $this->postWithRetry('sendSMS/', [
                 'auth_token' => $this->authToken,
                 'messages' => json_encode([
@@ -49,7 +56,7 @@ class AcumbamailService
                         'body' => $message,
                         'sender' => $this->sender,
                     ]
-                ]),
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             ]);
 
             $data = $response->json();
