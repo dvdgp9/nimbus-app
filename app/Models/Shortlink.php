@@ -59,17 +59,31 @@ class Shortlink extends Model
      */
     public function isValid(): bool
     {
-        return !$this->used 
-            && !$this->isExpired();
+        if (in_array($this->action, ['confirm', 'cancel'], true)) {
+            return true;
+        }
+
+        return !$this->used && !$this->isExpired();
     }
 
     public function isExpired(): bool
     {
+        // Patient confirmation/cancellation links remain valid. `used` and
+        // `expires_at` are retained as audit data for existing records, but do
+        // not invalidate these idempotent actions.
+        if (in_array($this->action, ['confirm', 'cancel'], true)) {
+            return false;
+        }
+
         return $this->expires_at->isPast();
     }
 
     public function markAsUsed(string $ip, string $userAgent): void
     {
+        if ($this->used) {
+            return;
+        }
+
         $this->update([
             'used' => true,
             'used_at' => now(),
@@ -88,7 +102,12 @@ class Shortlink extends Model
      */
     public function scopeValid($query)
     {
-        return $query->where('used', false)
-                     ->where('expires_at', '>', now());
+        return $query->where(function ($query) {
+            $query->whereIn('action', ['confirm', 'cancel'])
+                ->orWhere(function ($query) {
+                    $query->where('used', false)
+                        ->where('expires_at', '>', now());
+                });
+        });
     }
 }

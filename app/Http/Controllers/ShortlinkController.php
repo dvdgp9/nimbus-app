@@ -56,21 +56,34 @@ class ShortlinkController extends Controller
             return redirect()->away(RescheduleLinkService::forAppointment($appointment));
         }
 
-        // BUG-B2: if this shortlink was already used, do NOT re-execute the action
-        // (it would re-notify the professional, re-write timestamps, etc.).
-        // Show a friendly "already done" screen instead.
-        if ($shortlink->used) {
+        $isCancelled = in_array($appointment->nimbus_status, ['cancelled', 'cancelled_acknowledged'], true);
+
+        // Resolve patient actions from the appointment's current state, not
+        // from whether one particular email/SMS link was clicked before.
+        if ($action === 'confirm' && $isCancelled) {
+            return view('shortlinks.error', [
+                'message' => 'Esta sesión ya está cancelada',
+                'detail' => 'Por favor, contacta directamente con tu psicóloga para agendar una nueva cita, ya que la hora podría haberse ocupado.',
+            ]);
+        }
+
+        if ($action === 'confirm' && $appointment->nimbus_status === 'confirmed') {
             return view('shortlinks.success', [
-                'title' => 'Ya habías respondido',
-                'message' => match ($action) {
-                    'confirm' => 'Esta cita ya estaba confirmada. No hace falta hacer nada más.',
-                    'cancel' => 'Esta cita ya estaba cancelada. Hemos avisado a tu psicóloga.',
-                    'acknowledge_cancellation' => 'La cancelación ya estaba registrada.',
-                    default => 'Ya habías respondido a este aviso.',
-                },
+                'title' => 'Sesión ya confirmada',
+                'message' => 'La sesión ya estaba confirmada. No hace falta hacer nada más.',
                 'appointment' => $appointment,
-                'action' => $action,
-                'already_used' => true,
+                'action' => 'confirm',
+                'already_completed' => true,
+            ]);
+        }
+
+        if ($action === 'cancel' && $isCancelled) {
+            return view('shortlinks.success', [
+                'title' => 'Sesión ya cancelada',
+                'message' => 'La sesión ya estaba cancelada. No hace falta hacer nada más.',
+                'appointment' => $appointment,
+                'action' => 'cancel',
+                'already_completed' => true,
             ]);
         }
 
@@ -81,7 +94,7 @@ class ShortlinkController extends Controller
 
                 return view('shortlinks.success', [
                     'title' => 'Cita confirmada',
-                    'message' => 'Tu cita ha sido confirmada exitosamente.',
+                    'message' => 'Tu sesión ha quedado confirmada.',
                     'appointment' => $appointment,
                     'action' => 'confirm',
                 ]);
@@ -92,7 +105,7 @@ class ShortlinkController extends Controller
 
                 return view('shortlinks.success', [
                     'title' => 'Cita cancelada',
-                    'message' => 'Tu cita ha sido cancelada. Te confirmaremos la cancelación por email.',
+                    'message' => 'Tu sesión ha quedado cancelada. Hemos avisado a tu psicóloga.',
                     'appointment' => $appointment,
                     'action' => 'cancel',
                 ]);
