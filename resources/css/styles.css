@@ -218,6 +218,26 @@ nav a:hover::after { width: 100%; }
   @apply text-white/90 font-medium;
 }
 
+/* Public shortlink confirmation step */
+.shortlink-action-button {
+  @apply inline-flex w-full items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold text-white transition;
+}
+.shortlink-action-button:hover {
+  transform: translateY(-1px);
+}
+.shortlink-action-button:focus-visible {
+  @apply outline-none ring-2 ring-offset-2 ring-offset-slate-950;
+}
+.shortlink-action-confirm {
+  @apply bg-emerald-600 hover:bg-emerald-500 focus-visible:ring-emerald-400;
+}
+.shortlink-action-cancel {
+  @apply bg-red-700 hover:bg-red-600 focus-visible:ring-red-400;
+}
+.shortlink-action-acknowledge {
+  @apply bg-amber-600 hover:bg-amber-500 focus-visible:ring-amber-300;
+}
+
 /* Form styles */
 .form-group {
   @apply space-y-2;

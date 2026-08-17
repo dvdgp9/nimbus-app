@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Mail\AppointmentReminder;
+use App\Mail\TemplatedReminder;
 use App\Models\Appointment;
 use App\Models\Communication;
+use App\Models\MessageTemplate;
 use App\Models\Patient;
+use App\Models\User;
 use App\Services\AcumbamailService;
 use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +26,9 @@ class ReminderPartialDeliveryTest extends TestCase
 
     private function makeAppointment(): Appointment
     {
+        $user = User::factory()->create();
         $patient = Patient::create([
+            'user_id' => $user->id,
             'name' => 'Clara Robles',
             'email' => 'clara@example.com',
             'phone' => '+34628640445',
@@ -32,9 +36,25 @@ class ReminderPartialDeliveryTest extends TestCase
             'consent_sms' => true,
         ]);
 
+        MessageTemplate::create([
+            'user_id' => $user->id,
+            'name' => 'Email predeterminado',
+            'channel' => 'email',
+            'subject' => 'Recordatorio de tu cita',
+            'body' => 'Hola {{patient_first_name}}. [BOTON_CONFIRMAR] [BOTON_CANCELAR]',
+            'is_default' => true,
+        ]);
+        MessageTemplate::create([
+            'user_id' => $user->id,
+            'name' => 'SMS predeterminado',
+            'channel' => 'sms',
+            'body' => 'Hola {{patient_first_name}}. Confirmar: {{confirm_link}} Cancelar: {{cancel_link}}',
+            'is_default' => true,
+        ]);
+
         return Appointment::create([
             'calendar_id' => 'cal-1',
-            'google_event_id' => 'evt-' . uniqid(),
+            'google_event_id' => 'evt-'.uniqid(),
             'patient_id' => $patient->id,
             'summary' => 'Sesión de seguimiento',
             'start_at' => now()->addDays(2),
@@ -55,11 +75,11 @@ class ReminderPartialDeliveryTest extends TestCase
 
         $appointment = $this->makeAppointment();
 
-        $result = (new NotificationService())->sendReminder($appointment);
+        $result = (new NotificationService)->sendReminder($appointment);
 
         // At least one channel (email) succeeded.
         $this->assertTrue($result);
-        Mail::assertSent(AppointmentReminder::class, 1);
+        Mail::assertSent(TemplatedReminder::class, 1);
 
         $appointment->refresh();
 
@@ -82,16 +102,16 @@ class ReminderPartialDeliveryTest extends TestCase
             $mock->shouldReceive('sendSMS')
                 ->andThrow(new \Exception('Acumbamail API error: 404 Not Found'));
         });
-        (new NotificationService())->sendReminder($appointment);
+        (new NotificationService)->sendReminder($appointment);
 
         // Second tick: Acumbamail recovers, SMS now succeeds.
         $this->mock(AcumbamailService::class, function ($mock) {
             $mock->shouldReceive('sendSMS')->andReturn('sms-123');
         });
-        (new NotificationService())->sendReminder($appointment->fresh());
+        (new NotificationService)->sendReminder($appointment->fresh());
 
         // Email must NOT be resent on the retry (idempotent): still exactly one.
-        Mail::assertSent(AppointmentReminder::class, 1);
+        Mail::assertSent(TemplatedReminder::class, 1);
         $this->assertSame(1, Communication::where('channel', 'email')->where('status', 'sent')->count());
 
         // SMS now succeeded with the provider id recorded.

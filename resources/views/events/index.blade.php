@@ -185,6 +185,31 @@
               </div>
             </details>
           @endif
+
+          @if($apt->patient && $patientBelongsToUser)
+            @php
+              $appointmentTemplateResolutions = $templateResolutions[$apt->id];
+              $emailChannelActive = filled($apt->patient->email) && $apt->patient->consent_email;
+              $smsChannelActive = filled($apt->patient->phone) && $apt->patient->consent_sms;
+            @endphp
+            <div class="mt-4 border-t border-white/10 pt-4">
+              <div class="mb-2 text-xs font-medium uppercase tracking-wide text-white/45">
+                Plantillas que se enviarán
+              </div>
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                @include('events.partials.template-resolution', [
+                  'channel' => 'Email',
+                  'resolution' => $appointmentTemplateResolutions['email'],
+                  'channelActive' => $emailChannelActive,
+                ])
+                @include('events.partials.template-resolution', [
+                  'channel' => 'SMS',
+                  'resolution' => $appointmentTemplateResolutions['sms'],
+                  'channelActive' => $smsChannelActive,
+                ])
+              </div>
+            </div>
+          @endif
         </div>
       @endforeach
     </div>

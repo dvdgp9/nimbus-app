@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Services\GoogleCalendarService;
 use App\Services\NotificationService;
+use App\Services\ReminderTemplateResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -13,13 +14,14 @@ class EventsController extends Controller
     public function __construct(
         private GoogleCalendarService $calendar,
         private NotificationService $notifications,
+        private ReminderTemplateResolver $templateResolver,
     ) {}
 
     public function index(Request $request)
     {
         $email = $request->query('account');
         // If not provided, try first connected account of current user
-        if (!$email) {
+        if (! $email) {
             $row = DB::table('google_tokens')
                 ->where('user_id', auth()->id())
                 ->orderByDesc('updated_at')
@@ -44,24 +46,34 @@ class EventsController extends Controller
             })
             ->when($filter === 'unassigned', function ($query) {
                 $query->whereNull('patient_id')
-                      ->whereNotIn('nimbus_status', ['cancelled', 'cancelled_acknowledged']);
+                    ->whereNotIn('nimbus_status', ['cancelled', 'cancelled_acknowledged']);
             })
             ->where('start_at', '>=', now())
             ->where('start_at', '<=', now()->addDays(30))
             ->orderBy('start_at', 'asc')
             ->get();
 
+        $templateResolutions = $appointments->mapWithKeys(function (Appointment $appointment) {
+            return [
+                $appointment->id => [
+                    'email' => $this->templateResolver->resolve($appointment, 'email', auth()->id()),
+                    'sms' => $this->templateResolver->resolve($appointment, 'sms', auth()->id()),
+                ],
+            ];
+        });
+
         return view('events.index', [
             'account' => $email,
             'appointments' => $appointments,
             'filter' => $filter,
+            'templateResolutions' => $templateResolutions,
         ]);
     }
 
     public function sync(Request $request)
     {
         $email = $request->input('account');
-        if (!$email) {
+        if (! $email) {
             return back()->withErrors(['account' => 'Selecciona una cuenta conectada']);
         }
         $calendarIds = DB::table('connected_calendars')
@@ -75,6 +87,7 @@ class EventsController extends Controller
             $hoursAhead = 720; // 30 días
             $events = $this->calendar->listUpcomingEvents($email, $hoursAhead, $calendarIds ?: null, auth()->id());
             $count = $this->calendar->syncAppointments($events, auth()->id(), $calendarIds ?: null, $hoursAhead);
+
             return back()->with('status', "Sincronizados {$count} eventos de los próximos 30 días");
         } catch (\Google\Service\Exception $e) {
             $error = json_decode($e->getMessage(), true);
@@ -112,7 +125,7 @@ class EventsController extends Controller
         $failed = 0;
 
         foreach ($appointments as $appointment) {
-            if (!$appointment->patient) {
+            if (! $appointment->patient) {
                 continue;
             }
 

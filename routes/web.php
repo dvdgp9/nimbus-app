@@ -1,18 +1,18 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\EmailController;
-use App\Http\Controllers\GoogleAuthController;
-use App\Http\Controllers\EventsController;
 use App\Http\Controllers\CalendarsController;
+use App\Http\Controllers\EmailController;
+use App\Http\Controllers\EmailLogoController;
+use App\Http\Controllers\EventsController;
+use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\ShortlinkController;
-use App\Http\Controllers\PatientsController;
-use App\Http\Controllers\SmsTestController;
 use App\Http\Controllers\MessageTemplatesController;
 use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\EmailLogoController;
+use App\Http\Controllers\PatientsController;
 use App\Http\Controllers\ProfessionalAppointmentReviewController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ShortlinkController;
+use App\Http\Controllers\SmsTestController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -33,6 +33,7 @@ Route::post('/appointment-review/{appointment}/{decision}', [ProfessionalAppoint
 
 // Shortlink actions (public for patients)
 Route::get('/link/{token}', [ShortlinkController::class, 'handle'])->name('shortlink.handle');
+Route::post('/link/{token}', [ShortlinkController::class, 'execute'])->name('shortlink.execute');
 
 // Legal pages
 Route::get('/privacy-policy', function () {
@@ -64,7 +65,7 @@ Route::middleware(['auth'])->prefix('onboarding')->name('onboarding.')->group(fu
 // Protected routes (require authentication + onboarding completed)
 Route::middleware(['auth', \App\Http\Middleware\EnsureOnboardingCompleted::class])->group(function () {
     Route::get('/', HomeController::class)->name('home');
-    
+
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');

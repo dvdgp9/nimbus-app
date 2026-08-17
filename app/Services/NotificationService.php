@@ -2,20 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\Appointment;
-use App\Models\Patient;
-use App\Models\Communication;
-use App\Models\Shortlink;
-use App\Models\MessageTemplate;
-use App\Mail\AppointmentReminder;
 use App\Mail\TemplatedReminder;
 use App\Mail\UnknownPatientCode;
+use App\Models\Appointment;
+use App\Models\Communication;
+use App\Models\Patient;
+use App\Models\Shortlink;
 use App\Models\User;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 use Exception;
-use App\Services\AcumbamailService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
@@ -24,6 +21,14 @@ class NotificationService
      * before we give up and ask the professional to contact the patient manually.
      */
     public const MAX_DELIVERY_ATTEMPTS = 3;
+
+    private ReminderTemplateResolver $templateResolver;
+
+    public function __construct(
+        ?ReminderTemplateResolver $templateResolver = null
+    ) {
+        $this->templateResolver = $templateResolver ?? app(ReminderTemplateResolver::class);
+    }
 
     /**
      * Send reminder for an appointment via ALL channels with consent
@@ -35,8 +40,9 @@ class NotificationService
         // overlapping (or a sync running at the same time as send-reminders)
         // could otherwise both decide this reminder is "pending" and send twice.
         $lock = Cache::lock("nimbus:reminder:appt:{$appointment->id}", 120);
-        if (!$lock->get()) {
+        if (! $lock->get()) {
             Log::info("Reminder skipped: lock held for appointment {$appointment->id}");
+
             return false;
         }
 
@@ -51,10 +57,11 @@ class NotificationService
     {
         if ($appointment->requiresProfessionalReview()) {
             Log::info("Reminder blocked pending professional review for yellow appointment {$appointment->id}");
+
             return false;
         }
 
-        if (!$appointment->patient) {
+        if (! $appointment->patient) {
             // Check if there's a patient code that wasn't found
             $suggestedCode = $appointment->suggested_patient_code;
             if ($suggestedCode) {
@@ -62,6 +69,7 @@ class NotificationService
             } else {
                 Log::warning("Appointment {$appointment->id} has no patient assigned and no code detected");
             }
+
             return false;
         }
 
@@ -78,6 +86,34 @@ class NotificationService
 
         if (empty($channelsToSend)) {
             Log::warning("Patient {$patient->id} has no channels with consent");
+
+            return false;
+        }
+
+        // Resolve every consented channel before creating links or sending
+        // anything. Unknown codes and missing defaults must be visible
+        // configuration errors, never silent fallbacks to Nimbus copy.
+        $templateResolutions = [];
+        $hasBlockedChannel = false;
+        foreach ($channelsToSend as $channel) {
+            $resolution = $this->templateResolver->resolve($appointment, $channel);
+            $templateResolutions[$channel] = $resolution;
+
+            if (! $resolution->isReady()) {
+                $hasBlockedChannel = true;
+                Log::warning('Reminder blocked by template configuration', [
+                    'appointment_id' => $appointment->id,
+                    'patient_id' => $patient->id,
+                    'user_id' => $patient->user_id,
+                    'channel' => $channel,
+                    'message_code' => $appointment->message_code,
+                    'resolution_status' => $resolution->status,
+                    'resolution_message' => $resolution->message,
+                ]);
+            }
+        }
+
+        if ($hasBlockedChannel) {
             return false;
         }
 
@@ -94,6 +130,7 @@ class NotificationService
             Log::error("Reminder give up: {$recentFailures} failed attempts for appointment {$appointment->id}");
             $appointment->markReminderSent(); // stop the cron from retrying
             $this->notifyProfessionalOfDeliveryFailure($appointment, $recentFailures);
+
             return false;
         }
 
@@ -112,6 +149,7 @@ class NotificationService
             'cancelUrl' => $cancelLink->getUrl(),
             'rescheduleUrl' => $rescheduleLink->getUrl(),
             'templateData' => $templateData,
+            'templateResolutions' => $templateResolutions,
         ];
 
         $results = [];
@@ -127,11 +165,12 @@ class NotificationService
             if ($this->channelAlreadySent($appointment, $channel)) {
                 $results[$channel] = true;
                 Log::info("Reminder channel {$channel} already sent for appointment {$appointment->id}, skipping");
+
                 continue;
             }
 
             try {
-                $success = match($channel) {
+                $success = match ($channel) {
                     'email' => $this->sendEmail($appointment, $patient, $data),
                     'sms' => $this->sendSMS($appointment, $patient, $data),
                     default => false,
@@ -142,12 +181,12 @@ class NotificationService
                     Log::info("Reminder sent via {$channel} for appointment {$appointment->id}");
                 }
             } catch (Exception $e) {
-                Log::error("Failed to send {$channel} reminder: " . $e->getMessage());
+                Log::error("Failed to send {$channel} reminder: ".$e->getMessage());
                 $results[$channel] = false;
             }
         }
 
-        if (($results['email'] ?? false) && array_key_exists('sms', $results) && !$results['sms']) {
+        if (($results['email'] ?? false) && array_key_exists('sms', $results) && ! $results['sms']) {
             Log::warning('Reminder partially delivered: email succeeded but SMS failed', [
                 'appointment_id' => $appointment->id,
                 'patient_id' => $patient->id,
@@ -159,7 +198,7 @@ class NotificationService
         // once EVERY consented channel has succeeded. If any channel failed,
         // we leave the appointment pending so the next cron tick retries just
         // the failed channel(s) — capped by MAX_DELIVERY_ATTEMPTS above.
-        $allChannelsSucceeded = !empty($results) && !in_array(false, $results, true);
+        $allChannelsSucceeded = ! empty($results) && ! in_array(false, $results, true);
         if ($allChannelsSucceeded) {
             $appointment->markReminderSent();
         }
@@ -174,9 +213,9 @@ class NotificationService
     protected function buildTemplateData(Appointment $appointment, Patient $patient, Shortlink $confirmLink, Shortlink $cancelLink): array
     {
         $professional = $patient->user;
-        
+
         $rescheduleLink = RescheduleLinkService::forAppointment($appointment);
-        
+
         return [
             'patient_name' => $patient->name,
             'patient_first_name' => explode(' ', $patient->name)[0],
@@ -207,39 +246,16 @@ class NotificationService
     }
 
     /**
-     * Get the user's template for a channel by message code, or fallback to default
-     */
-    protected function getUserTemplate(Patient $patient, string $channel, ?string $messageCode = null): ?MessageTemplate
-    {
-        if (!$patient->user) {
-            return null;
-        }
-
-        $query = $patient->user->messageTemplates()->forChannel($channel);
-
-        // If message code is provided, try to find template with that code
-        if ($messageCode) {
-            $template = (clone $query)->where('code', $messageCode)->first();
-            if ($template) {
-                return $template;
-            }
-        }
-
-        // Fallback to default template
-        return $query->default()->first();
-    }
-
-    /**
      * Check if appointment has a valid message code with matching template
      */
     public function hasValidMessageCode(Appointment $appointment): bool
     {
-        if (!$appointment->message_code || !$appointment->patient) {
+        if (! $appointment->message_code || ! $appointment->patient) {
             return false;
         }
 
         $user = $appointment->patient->user;
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -254,18 +270,11 @@ class NotificationService
      */
     protected function sendEmail(Appointment $appointment, Patient $patient, array $data): bool
     {
-        $template = $this->getUserTemplate($patient, 'email', $appointment->message_code);
+        $template = $data['templateResolutions']['email']->template;
         $templateData = $data['templateData'];
 
-        // Determine subject and body
-        if ($template) {
-            $subject = $template->parseSubject($templateData);
-            $body = $template->parse($templateData);
-        } else {
-            // Fallback to default
-            $subject = 'Recordatorio: ' . $appointment->summary;
-            $body = null; // Will use default Mailable template
-        }
+        $subject = $template->parseSubject($templateData);
+        $body = $template->parse($templateData);
 
         $communication = Communication::create([
             'appointment_id' => $appointment->id,
@@ -274,32 +283,23 @@ class NotificationService
             'type' => 'reminder',
             'recipient' => $patient->email,
             'subject' => $subject,
-            'message_body' => $body ?? 'Reminder email',
+            'message_body' => $body,
             'consent_verified' => true,
             'status' => 'pending',
         ]);
 
         try {
-            if ($template) {
-                // Send with custom template
-                Mail::to($patient->email)->send(new TemplatedReminder($appointment, $patient, $subject, $body, $data));
-            } else {
-                // Send with default template - pass links array with required keys
-                $links = [
-                    'confirmUrl' => $data['confirmUrl'],
-                    'cancelUrl' => $data['cancelUrl'],
-                    'rescheduleUrl' => $data['rescheduleUrl'],
-                ];
-                Mail::to($patient->email)->send(new AppointmentReminder($appointment, $patient, $links));
-            }
-            
+            Mail::to($patient->email)->send(new TemplatedReminder($appointment, $patient, $subject, $body, $data));
+
             $communication->markAsSent();
 
             Log::info("Email reminder sent to {$patient->email} for appointment {$appointment->id}");
+
             return true;
         } catch (Exception $e) {
             $communication->markAsFailed($e->getMessage());
-            Log::error("Email failed: " . $e->getMessage());
+            Log::error('Email failed: '.$e->getMessage());
+
             return false;
         }
     }
@@ -309,12 +309,14 @@ class NotificationService
      */
     protected function sendSMS(Appointment $appointment, Patient $patient, array $data): bool
     {
-        if (!$patient->phone) {
+        if (! $patient->phone) {
             Log::warning("Patient {$patient->id} has no phone number");
+
             return false;
         }
 
-        $message = $this->buildSMSMessage($appointment, $patient, $data);
+        $template = $data['templateResolutions']['sms']->template;
+        $message = $template->parse($data['templateData']);
 
         $communication = Communication::create([
             'appointment_id' => $appointment->id,
@@ -330,41 +332,18 @@ class NotificationService
         try {
             $acumbamailService = app(AcumbamailService::class);
             $smsId = $acumbamailService->sendSMS($patient->phone, $message);
-            
+
             $communication->markAsSent($smsId);
 
             Log::info("SMS reminder sent to {$patient->phone} for appointment {$appointment->id}");
+
             return true;
         } catch (Exception $e) {
             $communication->markAsFailed($e->getMessage());
-            Log::error("SMS failed: " . $e->getMessage());
+            Log::error('SMS failed: '.$e->getMessage());
+
             return false;
         }
-    }
-
-    /**
-     * Build SMS message
-     */
-    protected function buildSMSMessage(Appointment $appointment, Patient $patient, array $data): string
-    {
-        $template = $this->getUserTemplate($patient, 'sms', $appointment->message_code);
-        
-        if ($template) {
-            return $template->parse($data['templateData']);
-        }
-
-        // Fallback to default message
-        $firstName = explode(' ', $patient->name)[0];
-        
-        return sprintf(
-            "Hola %s! Recordatorio: %s el %s a las %s. Confirmar: %s Cancelar: %s",
-            $firstName,
-            $appointment->summary,
-            $appointment->formatted_date,
-            $appointment->formatted_time,
-            $data['confirmUrl'],
-            $data['cancelUrl']
-        );
     }
 
     /**
@@ -374,27 +353,29 @@ class NotificationService
     {
         // Get the user who owns this calendar
         $user = $this->getUserFromAppointment($appointment);
-        
-        if (!$user) {
+
+        if (! $user) {
             Log::warning("Cannot notify about unknown patient code: no user found for appointment {$appointment->id}");
+
             return;
         }
 
         // Check if we already notified about this appointment (avoid spam)
         if ($appointment->unknown_patient_notified) {
             Log::info("Already notified about unknown patient code for appointment {$appointment->id}");
+
             return;
         }
 
         try {
             Mail::to($user->email)->send(new UnknownPatientCode($appointment, $patientCode));
-            
+
             // Mark as notified to avoid sending multiple times
             $appointment->update(['unknown_patient_notified' => true]);
-            
+
             Log::info("Notified user {$user->id} about unknown patient code '{$patientCode}' for appointment {$appointment->id}");
         } catch (Exception $e) {
-            Log::error("Failed to send unknown patient code notification: " . $e->getMessage());
+            Log::error('Failed to send unknown patient code notification: '.$e->getMessage());
         }
     }
 
@@ -403,7 +384,7 @@ class NotificationService
      */
     protected function getUserFromAppointment(Appointment $appointment): ?User
     {
-        if (!$appointment->calendar_id) {
+        if (! $appointment->calendar_id) {
             return null;
         }
 
@@ -413,7 +394,7 @@ class NotificationService
             ->where('enabled', 1)
             ->value('user_id');
 
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
@@ -427,28 +408,29 @@ class NotificationService
     protected function notifyProfessionalOfDeliveryFailure(Appointment $appointment, int $attempts): void
     {
         $patient = $appointment->patient;
-        if (!$patient || !$patient->user || empty($patient->user->email)) {
+        if (! $patient || ! $patient->user || empty($patient->user->email)) {
             Log::warning("Cannot alert professional about delivery failure for appointment {$appointment->id}: no user email.");
+
             return;
         }
 
         $when = $appointment->start_at?->format('d/m/Y H:i') ?? '—';
         $subject = "[Nimbus] No se pudo avisar a {$patient->name}";
         $body = "Hola {$patient->user->name},\n\n"
-              . "Hemos intentado enviar el recordatorio de la cita de {$patient->name} ({$when}) "
-              . "{$attempts} veces sin éxito en las últimas 24 horas.\n\n"
-              . "Datos del paciente:\n"
-              . "  • Email: " . ($patient->email ?: '—') . "\n"
-              . "  • Teléfono: " . ($patient->phone ?: '—') . "\n\n"
-              . "Te recomendamos contactar manualmente para confirmar la asistencia.\n\n"
-              . "Nimbus";
+              ."Hemos intentado enviar el recordatorio de la cita de {$patient->name} ({$when}) "
+              ."{$attempts} veces sin éxito en las últimas 24 horas.\n\n"
+              ."Datos del paciente:\n"
+              .'  • Email: '.($patient->email ?: '—')."\n"
+              .'  • Teléfono: '.($patient->phone ?: '—')."\n\n"
+              ."Te recomendamos contactar manualmente para confirmar la asistencia.\n\n"
+              .'Nimbus';
 
         try {
             Mail::raw($body, function ($message) use ($patient, $subject) {
                 $message->to($patient->user->email)->subject($subject);
             });
         } catch (Exception $e) {
-            Log::error("Failed to send delivery-failure alert to professional: " . $e->getMessage());
+            Log::error('Failed to send delivery-failure alert to professional: '.$e->getMessage());
         }
     }
 }
