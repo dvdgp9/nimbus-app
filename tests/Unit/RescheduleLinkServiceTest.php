@@ -18,7 +18,7 @@ class RescheduleLinkServiceTest extends TestCase
         $url = RescheduleLinkService::forAppointment($appointment);
 
         $this->assertSame(
-            'https://wa.me/34600111222?text=Hola%21+Me+gustar%C3%ADa+cambiar+la+cita+del+25%2F06',
+            'https://wa.me/34600111222?text=%C2%A1Hola%21+Me+gustar%C3%ADa+cambiar+la+cita+del+25%2F06',
             $url
         );
     }

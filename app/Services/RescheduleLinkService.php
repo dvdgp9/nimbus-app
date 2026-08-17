@@ -9,7 +9,7 @@ class RescheduleLinkService
     public static function forAppointment(Appointment $appointment): string
     {
         $message = sprintf(
-            'Hola! Me gustaría cambiar la cita del %s',
+            '¡Hola! Me gustaría cambiar la cita del %s',
             $appointment->start_at->format('d/m')
         );
 

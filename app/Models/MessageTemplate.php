@@ -110,7 +110,7 @@ class MessageTemplate extends Model
             'professional_name' => 'Dr. Juan Pérez',
             'confirm_link' => 'https://nimbus.app/link/abc123',
             'cancel_link' => 'https://nimbus.app/link/xyz789',
-            'reschedule_link' => 'https://wa.me/34621072649?text=Hola!%20Me%20gustaría%20cambiar%20la%20cita%20del%2027/01',
+            'reschedule_link' => 'https://wa.me/34621072649?text=¡Hola!%20Me%20gustaría%20cambiar%20la%20cita%20del%2027/01',
             'hangout_link' => 'https://meet.google.com/abc-defg-hij',
         ];
 
