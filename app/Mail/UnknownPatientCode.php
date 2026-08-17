@@ -14,17 +14,25 @@ class UnknownPatientCode extends Mailable
     use Queueable, SerializesModels;
 
     public string $createPatientUrl;
-    public string $patientCode;
+
+    /**
+     * N2: $patientCode is null when the event title has no readable code at all.
+     * Those used to produce nothing but a log line.
+     */
+    public ?string $patientCode;
 
     /**
      * Create a new message instance.
      */
     public function __construct(
         public Appointment $appointment,
-        string $patientCode
+        ?string $patientCode,
+        public bool $escalated = false
     ) {
         $this->patientCode = $patientCode;
-        $this->createPatientUrl = route('patients.create', ['code' => $patientCode]);
+        $this->createPatientUrl = $patientCode
+            ? route('patients.create', ['code' => $patientCode])
+            : route('patients.create');
     }
 
     /**
@@ -32,8 +40,20 @@ class UnknownPatientCode extends Mailable
      */
     public function envelope(): Envelope
     {
+        $date = $this->appointment->formatted_date;
+
+        if ($this->escalated) {
+            return new Envelope(
+                subject: $this->patientCode
+                    ? "🚨 Urgente: la sesión del {$date} sigue sin paciente ({$this->patientCode})"
+                    : "🚨 Urgente: la sesión del {$date} sigue sin paciente",
+            );
+        }
+
         return new Envelope(
-            subject: "⚠️ Código de paciente no encontrado: {$this->patientCode}",
+            subject: $this->patientCode
+                ? "⚠️ Código de paciente no encontrado: {$this->patientCode}"
+                : "⚠️ Cita sin paciente identificable: {$date}",
         );
     }
 

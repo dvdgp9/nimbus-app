@@ -29,20 +29,37 @@
 <body>
   <div class="wrapper">
     <div class="container">
-      <div class="header">
+      <div class="header"@if($escalated) style="background:linear-gradient(135deg,#ef4444,#b91c1c);"@endif>
         <div class="brand">☁️ Nimbus</div>
-        <div class="subtitle">Código de Paciente No Encontrado</div>
+        <div class="subtitle">@if($escalated)Aviso urgente: sesión sin paciente @elseif($patientCode) Código de Paciente No Encontrado @else Cita sin paciente identificable @endif</div>
       </div>
-      
+
       <div class="content">
         <p>¡Hola!</p>
-        
-        <div class="alert-box">
-          <p>⚠️ Se ha detectado una cita con un <strong>código de paciente que no existe</strong> en tu base de datos.</p>
-        </div>
 
-        <p>El código detectado es: <span class="code-highlight">{{ $patientCode }}</span></p>
-        
+        @if($escalated)
+          <div class="alert-box" style="background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.35);">
+            @php
+              $reason = $patientCode
+                  ? 'el código todavía no existe en tu base de datos'
+                  : 'seguimos sin poder identificar al paciente';
+            @endphp
+            <p>🚨 Esta cita <strong>sigue sin paciente registrado</strong> y ya queda menos de {{ \App\Models\Appointment::UNKNOWN_PATIENT_ESCALATION_HOURS }} h para la sesión. Te avisamos hace unos días, pero {{ $reason }}.</p>
+          </div>
+        @elseif($patientCode)
+          <div class="alert-box">
+            <p>⚠️ Se ha detectado una cita con un <strong>código de paciente que no existe</strong> en tu base de datos.</p>
+          </div>
+        @else
+          <div class="alert-box">
+            <p>⚠️ Hay una cita en tu calendario en la que <strong>no conseguimos identificar al paciente</strong>: el título no empieza por un código reconocible.</p>
+          </div>
+        @endif
+
+        @if($patientCode)
+          <p>El código detectado es: <span class="code-highlight">{{ $patientCode }}</span></p>
+        @endif
+
         <div class="info-card">
           <h3>📅 Información de la Cita</h3>
           <div class="detail">
@@ -59,18 +76,40 @@
           </div>
         </div>
 
-        <p style="color:rgba(255,255,255,0.7);">
-          Como el paciente no está registrado, <strong>no se enviará ningún recordatorio</strong> para esta cita.
-        </p>
+        @if($escalated)
+          <p style="color:rgba(255,255,255,0.7);">
+            El recordatorio al paciente sale 48 h antes de la sesión. Si el paciente no está creado para entonces,
+            <strong>no se enviará nada</strong> y tendrás que escribirle tú.
+          </p>
+        @else
+          <p style="color:rgba(255,255,255,0.7);">
+            Como el paciente no está registrado, <strong>no se enviará ningún recordatorio</strong> para esta cita.
+          </p>
+        @endif
 
         <div class="cta-section">
           <p style="color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:20px;">
-            Haz clic para crear el paciente con el código prellenado:
+            @if($patientCode)
+              Haz clic para crear el paciente con el código prellenado:
+            @else
+              Haz clic para crear el paciente:
+            @endif
           </p>
           <a href="{{ $createPatientUrl }}" class="cta-btn">
-            ➕ Crear Paciente "{{ $patientCode }}"
+            @if($patientCode)
+              ➕ Crear Paciente "{{ $patientCode }}"
+            @else
+              ➕ Crear Paciente
+            @endif
           </a>
         </div>
+
+        @unless($patientCode)
+          <p style="color:rgba(255,255,255,0.7);font-size:14px;">
+            Para que Nimbus reconozca esta cita por sí solo, renombra el evento en Google Calendar de forma que
+            <strong>empiece por el código del paciente</strong>, por ejemplo <em>“A123 - Sesión”</em>.
+          </p>
+        @endunless
 
         <p style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:24px;">
           💡 <em>Una vez creado el paciente, la próxima sincronización vinculará automáticamente esta cita.</em>

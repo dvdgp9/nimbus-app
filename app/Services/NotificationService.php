@@ -62,13 +62,9 @@ class NotificationService
         }
 
         if (! $appointment->patient) {
-            // Check if there's a patient code that wasn't found
-            $suggestedCode = $appointment->suggested_patient_code;
-            if ($suggestedCode) {
-                $this->notifyUnknownPatientCode($appointment, $suggestedCode);
-            } else {
-                Log::warning("Appointment {$appointment->id} has no patient assigned and no code detected");
-            }
+            // N2: notify with or without a detected code. A title we cannot read
+            // at all used to end here as a log line the professional never saw.
+            $this->notifyUnknownPatientCode($appointment, $appointment->suggested_patient_code);
 
             return false;
         }
@@ -349,7 +345,7 @@ class NotificationService
     /**
      * Notify the professional that a patient code was not found
      */
-    public function notifyUnknownPatientCode(Appointment $appointment, string $patientCode): void
+    public function notifyUnknownPatientCode(Appointment $appointment, ?string $patientCode): bool
     {
         // Get the user who owns this calendar
         $user = $this->getUserFromAppointment($appointment);
@@ -357,14 +353,14 @@ class NotificationService
         if (! $user) {
             Log::warning("Cannot notify about unknown patient code: no user found for appointment {$appointment->id}");
 
-            return;
+            return false;
         }
 
         // Check if we already notified about this appointment (avoid spam)
         if ($appointment->unknown_patient_notified) {
             Log::info("Already notified about unknown patient code for appointment {$appointment->id}");
 
-            return;
+            return false;
         }
 
         try {
@@ -373,9 +369,57 @@ class NotificationService
             // Mark as notified to avoid sending multiple times
             $appointment->update(['unknown_patient_notified' => true]);
 
-            Log::info("Notified user {$user->id} about unknown patient code '{$patientCode}' for appointment {$appointment->id}");
+            Log::info('Notified professional about an appointment with no matching patient', [
+                'appointment_id' => $appointment->id,
+                'user_id' => $user->id,
+                // N2: null means the title had no readable code at all.
+                'patient_code' => $patientCode,
+            ]);
+
+            return true;
         } catch (Exception $e) {
             Log::error('Failed to send unknown patient code notification: '.$e->getMessage());
+
+            return false;
+        }
+    }
+
+    /**
+     * N1: second, urgent notice when the unknown code was already reported but
+     * the patient still does not exist and the session is now within
+     * Appointment::UNKNOWN_PATIENT_ESCALATION_HOURS.
+     */
+    public function escalateUnknownPatientCode(Appointment $appointment, ?string $patientCode): bool
+    {
+        if (! $appointment->needsUnknownPatientEscalation()) {
+            return false;
+        }
+
+        $user = $this->getUserFromAppointment($appointment);
+
+        if (! $user) {
+            Log::warning("Cannot escalate unknown patient code: no user found for appointment {$appointment->id}");
+
+            return false;
+        }
+
+        try {
+            Mail::to($user->email)->send(new UnknownPatientCode($appointment, $patientCode, escalated: true));
+
+            // Only mark it once the email actually left, so a failed send is
+            // retried by the next sync instead of being silently swallowed.
+            $appointment->update(['unknown_patient_escalated_at' => now()]);
+
+            Log::info("Escalated unknown patient code '{$patientCode}' for appointment {$appointment->id} to user {$user->id}");
+
+            return true;
+        } catch (Exception $e) {
+            Log::error('Failed to escalate unknown patient code notification: '.$e->getMessage(), [
+                'appointment_id' => $appointment->id,
+                'patient_code' => $patientCode,
+            ]);
+
+            return false;
         }
     }
 

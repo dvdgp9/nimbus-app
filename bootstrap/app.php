@@ -28,6 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
                  ->withoutOverlapping()
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/reminders.log'));
+
+        // N3: alert the professional about sessions the patient never answered,
+        // 24h before they happen. Same cadence as the rest so a missed tick is
+        // picked up by the next one.
+        $schedule->command('nimbus:notify-unconfirmed --hours=24')
+                 ->everyFifteenMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/unconfirmed.log'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Plain-text fallback renderer, bypasses Phiki when the server's

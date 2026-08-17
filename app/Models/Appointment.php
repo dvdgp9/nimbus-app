@@ -16,6 +16,20 @@ class Appointment extends Model
 {
     public const GOOGLE_YELLOW_COLOR_ID = '5';
 
+    /**
+     * N1: hours before the session at which an unresolved unknown patient code
+     * is escalated with a second, urgent email. Set above the 48h reminder so
+     * the professional still has a full day of margin to create the patient.
+     */
+    public const UNKNOWN_PATIENT_ESCALATION_HOURS = 72;
+
+    /**
+     * N2: how far ahead we warn about appointments whose title has no readable
+     * patient code. Kept short on purpose: further out she is often still
+     * renaming events, and a warning then would be noise.
+     */
+    public const UNRECOGNIZED_NOTICE_DAYS = 14;
+
     protected $fillable = [
         'google_event_id',
         'calendar_id',
@@ -30,6 +44,8 @@ class Appointment extends Model
         'google_color_id',
         'first_session_notified',
         'unknown_patient_notified',
+        'unknown_patient_escalated_at',
+        'unconfirmed_alert_sent_at',
         'professional_review_notified_at',
         'professional_reviewed_at',
         'professional_review_decision',
@@ -50,6 +66,8 @@ class Appointment extends Model
         'last_synced_at' => 'datetime',
         'professional_review_notified_at' => 'datetime',
         'professional_reviewed_at' => 'datetime',
+        'unknown_patient_escalated_at' => 'datetime',
+        'unconfirmed_alert_sent_at' => 'datetime',
         'raw_payload' => 'array',
     ];
 
@@ -102,6 +120,21 @@ class Appointment extends Model
             ->whereNull('reminder_sent_at');
     }
 
+    /**
+     * N3: the reminder went out and the patient has neither confirmed nor
+     * cancelled, with the session now inside $hoursBefore.
+     */
+    public function scopeAwaitingPatientResponse($query, int $hoursBefore)
+    {
+        return $query
+            ->where('start_at', '>', now())
+            ->where('start_at', '<=', now()->addHours($hoursBefore))
+            ->where('nimbus_status', 'reminder_sent')
+            ->whereNotNull('reminder_sent_at')
+            ->whereNotNull('patient_id')
+            ->whereNull('unconfirmed_alert_sent_at');
+    }
+
     public function scopeWithPatient($query)
     {
         return $query->whereNotNull('patient_id')
@@ -116,6 +149,31 @@ class Appointment extends Model
         return $this->nimbus_status === 'pending'
             && is_null($this->reminder_sent_at)
             && $this->start_at->isFuture();
+    }
+
+    /**
+     * N2: all-day events (blocks, holidays, travel) come from Google with a date
+     * instead of a time, so they land as 00:00 to 00:00. They are never sessions.
+     */
+    public function isAllDay(): bool
+    {
+        return $this->start_at
+            && $this->end_at
+            && $this->start_at->diffInHours($this->end_at) >= 24;
+    }
+
+    /**
+     * N1: the first unknown-code notice was sent, nobody created the patient and
+     * the session is now close enough to warrant a second, urgent email.
+     */
+    public function needsUnknownPatientEscalation(): bool
+    {
+        return is_null($this->patient_id)
+            && (bool) $this->unknown_patient_notified
+            && is_null($this->unknown_patient_escalated_at)
+            && $this->start_at
+            && $this->start_at->isFuture()
+            && $this->start_at->lte(now()->addHours(self::UNKNOWN_PATIENT_ESCALATION_HOURS));
     }
 
     public function requiresProfessionalReview(): bool

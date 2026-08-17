@@ -129,6 +129,12 @@ class SyncCalendars extends Command
                     $this->info("   ⚠️ Notified {$unknownCodesProcessed} unknown patient code(s)");
                 }
 
+                // N1: insist on codes that are still unresolved close to the session
+                $escalated = $this->escalateUnknownPatientCodes($account->user_id);
+                if ($escalated > 0) {
+                    $this->warn("   🚨 Escalated {$escalated} unresolved patient code(s)");
+                }
+
                 $yellowReviewsProcessed = $this->processYellowAppointments($account->user_id);
                 if ($yellowReviewsProcessed > 0) {
                     $this->info("   Notified {$yellowReviewsProcessed} yellow appointment(s)");
@@ -240,17 +246,61 @@ class SyncCalendars extends Command
 
         $processed = 0;
         foreach ($appointments as $appointment) {
-            // Check if there's a suggested patient code in the title
             $suggestedCode = $appointment->suggested_patient_code;
-            
-            if ($suggestedCode) {
-                // There's a code but patient doesn't exist - notify
-                $this->notificationService->notifyUnknownPatientCode($appointment, $suggestedCode);
+
+            // N2: titles with no readable code used to be dropped silently here.
+            // They are now notified too, but with two guards against noise, since
+            // "no code" also describes personal events sitting in a work calendar:
+            // all-day events are never sessions, and we only warn once the event
+            // is close enough that she is unlikely to still be renaming it.
+            if (! $suggestedCode) {
+                if ($appointment->isAllDay()) {
+                    continue;
+                }
+
+                if ($appointment->start_at->gt(now()->addDays(Appointment::UNRECOGNIZED_NOTICE_DAYS))) {
+                    continue;
+                }
+            }
+
+            if ($this->notificationService->notifyUnknownPatientCode($appointment, $suggestedCode)) {
                 $processed++;
             }
         }
 
         return $processed;
+    }
+
+    /**
+     * N1: send the urgent second notice for patient codes that were already
+     * reported but still do not exist, once the session is close enough.
+     */
+    protected function escalateUnknownPatientCodes(int $userId): int
+    {
+        $appointments = Appointment::whereNull('patient_id')
+            ->where('unknown_patient_notified', true)
+            ->whereNull('unknown_patient_escalated_at')
+            ->where('start_at', '>', now())
+            ->where('start_at', '<=', now()->addHours(Appointment::UNKNOWN_PATIENT_ESCALATION_HOURS))
+            ->where('summary', 'not like', FirstSessionService::FIRST_SESSION_SQL_LIKE)
+            ->whereIn('calendar_id', function ($query) use ($userId) {
+                $query->select('calendar_id')
+                    ->from('connected_calendars')
+                    ->where('user_id', $userId)
+                    ->where('enabled', 1);
+            })
+            ->get();
+
+        $escalated = 0;
+        foreach ($appointments as $appointment) {
+            // N2: escalate whatever got a first notice, code or no code. Anything
+            // that never got one cannot reach here (the query requires the flag).
+            if ($this->notificationService->escalateUnknownPatientCode($appointment, $appointment->suggested_patient_code)) {
+                $escalated++;
+            }
+        }
+
+        return $escalated;
     }
 
     protected function processYellowAppointments(int $userId): int
