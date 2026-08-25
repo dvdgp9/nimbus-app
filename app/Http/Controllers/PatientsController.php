@@ -12,6 +12,11 @@ use Illuminate\Validation\ValidationException;
 
 class PatientsController extends Controller
 {
+    /**
+     * Word the user must type to confirm deleting every patient.
+     */
+    public const PURGE_CONFIRMATION = 'BORRAR';
+
     public function __construct(
         private PatientImportService $patientImporter
     ) {}
@@ -96,9 +101,17 @@ class PatientsController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
+        // Totals for the bulk actions bar: they must reflect every patient of the
+        // user, not the current page nor the active search filter
+        $totalPatients = Patient::where('user_id', auth()->id())->count();
+        $totalWithAppointments = Patient::where('user_id', auth()->id())->has('appointments')->count();
+
         return view('patients.index', [
             'patients' => $patients,
             'search' => $search,
+            'totalPatients' => $totalPatients,
+            'totalWithAppointments' => $totalWithAppointments,
+            'purgeConfirmation' => self::PURGE_CONFIRMATION,
         ]);
     }
 
@@ -288,6 +301,109 @@ class PatientsController extends Controller
 
         return redirect()->route('patients.index')
             ->with('status', 'Paciente eliminado exitosamente');
+    }
+
+    /**
+     * Remove several patients at once.
+     *
+     * Patients with appointments are skipped unless the request explicitly
+     * forces their deletion. Deleting them does not destroy their appointments:
+     * the foreign key is ON DELETE SET NULL, so the appointments survive
+     * without an assigned patient.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+            'force' => 'boolean',
+        ], [
+            'ids.required' => 'No has seleccionado ningún paciente.',
+        ]);
+
+        $force = (bool) ($validated['force'] ?? false);
+
+        // Scope by user_id in the query itself: never trust the submitted ids
+        $patients = Patient::query()
+            ->where('user_id', auth()->id())
+            ->whereIn('id', $validated['ids'])
+            ->withCount('appointments')
+            ->get();
+
+        $deletable = $force
+            ? $patients
+            : $patients->where('appointments_count', 0);
+
+        $skipped = $patients->count() - $deletable->count();
+
+        if ($deletable->isNotEmpty()) {
+            Patient::query()
+                ->where('user_id', auth()->id())
+                ->whereIn('id', $deletable->pluck('id'))
+                ->delete();
+        }
+
+        return redirect()->route('patients.index')
+            ->with('status', $this->deletionSummary($deletable->count(), $skipped));
+    }
+
+    /**
+     * Delete every patient of the authenticated user.
+     *
+     * Guarded by a typed confirmation word because the deletion is permanent:
+     * patients do not use soft deletes. Ignores any active search filter on
+     * purpose — "delete all" must not silently mean "delete the filtered ones".
+     */
+    public function purge(Request $request)
+    {
+        $validated = $request->validate([
+            'confirmation' => 'required|string|in:' . self::PURGE_CONFIRMATION,
+            'force' => 'boolean',
+        ], [
+            'confirmation.required' => 'Escribe ' . self::PURGE_CONFIRMATION . ' para confirmar.',
+            'confirmation.in' => 'La confirmación no coincide. Escribe ' . self::PURGE_CONFIRMATION . ' exactamente.',
+        ]);
+
+        $force = (bool) ($validated['force'] ?? false);
+
+        $patients = Patient::query()
+            ->where('user_id', auth()->id())
+            ->withCount('appointments')
+            ->get();
+
+        $deletable = $force
+            ? $patients
+            : $patients->where('appointments_count', 0);
+
+        $skipped = $patients->count() - $deletable->count();
+
+        if ($deletable->isNotEmpty()) {
+            Patient::query()
+                ->where('user_id', auth()->id())
+                ->whereIn('id', $deletable->pluck('id'))
+                ->delete();
+        }
+
+        return redirect()->route('patients.index')
+            ->with('status', $this->deletionSummary($deletable->count(), $skipped));
+    }
+
+    /**
+     * Human readable summary shared by the bulk deletion flows.
+     */
+    protected function deletionSummary(int $deleted, int $skipped): string
+    {
+        $summary = $deleted === 1
+            ? 'Se eliminó 1 paciente.'
+            : "Se eliminaron {$deleted} pacientes.";
+
+        if ($skipped > 0) {
+            $summary .= $skipped === 1
+                ? ' Se omitió 1 paciente por tener citas asociadas.'
+                : " Se omitieron {$skipped} pacientes por tener citas asociadas.";
+        }
+
+        return $summary;
     }
 
     private function normalizePhone(?string $phone): ?string

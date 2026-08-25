@@ -91,6 +91,10 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureOnboardingCompleted::class
     Route::get('/patients/import', [PatientsController::class, 'importForm'])->name('patients.import.form');
     Route::post('/patients/import/csv', [PatientsController::class, 'importCsv'])->name('patients.import.csv');
     Route::post('/patients/import/paste', [PatientsController::class, 'importPaste'])->name('patients.import.paste');
+    // Bulk deletion — must be declared before the resource routes so the literal
+    // segments are not captured by /patients/{patient}
+    Route::delete('/patients/bulk', [PatientsController::class, 'bulkDestroy'])->name('patients.bulk-destroy');
+    Route::delete('/patients/purge', [PatientsController::class, 'purge'])->name('patients.purge');
     Route::resource('patients', PatientsController::class);
 
     // Email

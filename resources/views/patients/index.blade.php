@@ -34,6 +34,16 @@
     </div>
   @endif
 
+  @if ($errors->any())
+    <div class="alert alert-error mb-6">
+      <ul class="list-disc list-inside space-y-1">
+        @foreach ($errors->all() as $error)
+          <li>{{ $error }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
+
   {{-- Search Bar --}}
   <div class="mb-6">
     <form method="GET" action="{{ route('patients.index') }}" class="flex gap-2">
@@ -83,10 +93,38 @@
       @endif
     </div>
   @else
+    <form method="POST" action="{{ route('patients.bulk-destroy') }}" id="bulk-form">
+      @csrf
+      @method('DELETE')
+      <input type="hidden" name="force" id="bulk-force" value="0">
+
+      {{-- Bulk actions bar, revealed once something is selected --}}
+      <div class="bulk-bar" id="bulk-bar" hidden>
+        <span class="bulk-bar-count" id="bulk-count"></span>
+        <span class="bulk-bar-note" id="bulk-note" hidden></span>
+        <div class="bulk-bar-actions">
+          <button type="button" class="btn-quiet" id="bulk-clear">Deseleccionar</button>
+          <button type="submit" class="btn-danger" id="bulk-submit">Eliminar seleccionados</button>
+        </div>
+      </div>
+
+      <div class="select-all-row">
+        <input type="checkbox" id="select-page" class="patient-checkbox" style="margin-top:0">
+        <label for="select-page">Seleccionar los {{ $patients->count() }} pacientes de esta página</label>
+      </div>
+
     <div class="grid grid-cols-1 gap-3">
       @foreach($patients as $patient)
         <div class="bg-white/5 rounded-xl border border-white/10 p-4 hover:bg-white/[0.07] transition">
           <div class="flex items-start justify-between gap-4">
+            <input
+              type="checkbox"
+              name="ids[]"
+              value="{{ $patient->id }}"
+              class="patient-checkbox js-patient-checkbox"
+              data-appointments="{{ $patient->appointments_count }}"
+              aria-label="Seleccionar {{ $patient->name }}"
+            >
             {{-- Left: Name and Code --}}
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
@@ -168,6 +206,7 @@
         </div>
       @endforeach
     </div>
+    </form>
 
     {{-- Pagination --}}
     @if($patients->hasPages())
@@ -176,5 +215,155 @@
       </div>
     @endif
   @endif
+
+  {{-- Danger zone: wipe every patient of this account --}}
+  @if($totalPatients > 0)
+    <div class="danger-zone">
+      <h3>Borrar todos mis pacientes</h3>
+      <p>
+        Elimina los {{ $totalPatients }} pacientes de tu cuenta, no solo los de esta página ni los del filtro de búsqueda.
+        La acción es permanente: no hay papelera.
+        @if($totalWithAppointments > 0)
+          {{ $totalWithAppointments }} {{ $totalWithAppointments === 1 ? 'tiene' : 'tienen' }} citas asociadas.
+        @endif
+      </p>
+
+      <button type="button" class="btn-danger mt-3" id="purge-open">Borrar todos mis pacientes</button>
+
+      <form method="POST" action="{{ route('patients.purge') }}" class="purge-dialog" id="purge-dialog" hidden>
+        @csrf
+        @method('DELETE')
+
+        @if($totalWithAppointments > 0)
+          <div class="purge-checkbox-row">
+            <input type="checkbox" name="force" value="1" id="purge-force" class="patient-checkbox" style="margin-top:2px">
+            <label for="purge-force" style="margin:0">
+              Borrar también los {{ $totalWithAppointments }} pacientes con citas asociadas.
+              Sus citas no se borran: quedan sin paciente asignado.
+            </label>
+          </div>
+        @endif
+
+        <div>
+          <label for="purge-confirmation">Escribe <span class="font-mono font-bold text-red-300">{{ $purgeConfirmation }}</span> para confirmar</label>
+          <input type="text" name="confirmation" id="purge-confirmation" autocomplete="off" placeholder="{{ $purgeConfirmation }}">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="submit" class="btn-danger">Borrar definitivamente</button>
+          <button type="button" class="btn-quiet" id="purge-cancel">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  @endif
 </div>
+
+<script>
+  (function () {
+    var form = document.getElementById('bulk-form');
+
+    if (form) {
+      var boxes = Array.prototype.slice.call(document.querySelectorAll('.js-patient-checkbox'));
+      var bar = document.getElementById('bulk-bar');
+      var count = document.getElementById('bulk-count');
+      var note = document.getElementById('bulk-note');
+      var selectPage = document.getElementById('select-page');
+      var force = document.getElementById('bulk-force');
+
+      var selected = function () {
+        return boxes.filter(function (box) { return box.checked; });
+      };
+
+      var withAppointments = function () {
+        return selected().filter(function (box) {
+          return parseInt(box.dataset.appointments, 10) > 0;
+        });
+      };
+
+      var refresh = function () {
+        var chosen = selected();
+        var booked = withAppointments();
+
+        bar.hidden = chosen.length === 0;
+        count.textContent = chosen.length === 1
+          ? '1 paciente seleccionado'
+          : chosen.length + ' pacientes seleccionados';
+
+        note.hidden = booked.length === 0;
+        note.textContent = booked.length === 1
+          ? '1 de ellos tiene citas'
+          : booked.length + ' de ellos tienen citas';
+
+        selectPage.checked = boxes.length > 0 && chosen.length === boxes.length;
+      };
+
+      boxes.forEach(function (box) { box.addEventListener('change', refresh); });
+
+      selectPage.addEventListener('change', function () {
+        boxes.forEach(function (box) { box.checked = selectPage.checked; });
+        refresh();
+      });
+
+      document.getElementById('bulk-clear').addEventListener('click', function () {
+        boxes.forEach(function (box) { box.checked = false; });
+        refresh();
+      });
+
+      form.addEventListener('submit', function (event) {
+        var chosen = selected();
+        var booked = withAppointments();
+
+        if (chosen.length === 0) {
+          event.preventDefault();
+          return;
+        }
+
+        var message = 'Vas a eliminar ' + chosen.length + ' paciente(s). Esta accion no se puede deshacer.';
+
+        if (booked.length > 0) {
+          message += '\n\n' + booked.length + ' de ellos tienen citas asociadas.'
+            + '\n\nAceptar: borrarlos tambien (sus citas quedan sin paciente asignado).'
+            + '\nCancelar: no borrar nada.';
+
+          if (!window.confirm(message)) {
+            event.preventDefault();
+            return;
+          }
+
+          force.value = '1';
+          return;
+        }
+
+        if (!window.confirm(message)) {
+          event.preventDefault();
+        }
+      });
+
+      refresh();
+    }
+
+    var purgeOpen = document.getElementById('purge-open');
+
+    if (purgeOpen) {
+      var dialog = document.getElementById('purge-dialog');
+
+      purgeOpen.addEventListener('click', function () {
+        dialog.hidden = false;
+        purgeOpen.hidden = true;
+        document.getElementById('purge-confirmation').focus();
+      });
+
+      document.getElementById('purge-cancel').addEventListener('click', function () {
+        dialog.hidden = true;
+        purgeOpen.hidden = false;
+      });
+
+      dialog.addEventListener('submit', function (event) {
+        if (!window.confirm('Ultima confirmacion: se borraran todos tus pacientes de forma permanente.')) {
+          event.preventDefault();
+        }
+      });
+    }
+  })();
+</script>
 </x-app-layout>
