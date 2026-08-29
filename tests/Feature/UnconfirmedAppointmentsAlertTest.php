@@ -31,6 +31,7 @@ class UnconfirmedAppointmentsAlertTest extends TestCase
             $table->string('timezone')->default('Europe/Madrid');
             $table->unsignedBigInteger('patient_id')->nullable();
             $table->string('nimbus_status')->default('pending');
+            $table->boolean('excluded_by_weekend_preference')->default(false);
             $table->timestamp('reminder_sent_at')->nullable();
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
@@ -105,6 +106,17 @@ class UnconfirmedAppointmentsAlertTest extends TestCase
     {
         Mail::fake();
         $this->awaitingAppointment('Ana Ruiz', '+34600111222', now()->addHours(40));
+
+        $this->artisan('nimbus:notify-unconfirmed')->assertSuccessful();
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_a_session_excluded_by_the_weekend_preference_is_not_included(): void
+    {
+        Mail::fake();
+        $this->awaitingAppointment('Ana Ruiz', '+34600111222')
+            ->update(['excluded_by_weekend_preference' => true]);
 
         $this->artisan('nimbus:notify-unconfirmed')->assertSuccessful();
 

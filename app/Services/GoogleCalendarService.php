@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Google\Service\Calendar as GoogleCalendar;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -77,6 +78,10 @@ class GoogleCalendarService
         $count = 0;
         $googleIds = [];
         $detectedCalendars = [];
+        $includeWeekends = $userId === null
+            ? true
+            : (bool) (User::query()->whereKey($userId)->value('include_weekends') ?? true);
+
         foreach ($events as $e) {
             $count++;
 
@@ -97,6 +102,9 @@ class GoogleCalendarService
 
             $newStart = $this->toDateTime($e['start_at']);
             $newEnd = $this->toDateTime($e['end_at']);
+            $excludedByWeekendPreference = ! $includeWeekends
+                && $newStart !== null
+                && Carbon::parse($newStart)->isWeekend();
 
             $existing = DB::table('appointments')
                 ->where('google_event_id', $e['google_event_id'])
@@ -115,6 +123,7 @@ class GoogleCalendarService
                 'google_color_id' => $e['color_id'] ?? null,
                 'last_synced_at' => now(),
                 'raw_payload' => json_encode($e['raw']),
+                'excluded_by_weekend_preference' => $excludedByWeekendPreference,
                 'updated_at' => now(),
             ];
 

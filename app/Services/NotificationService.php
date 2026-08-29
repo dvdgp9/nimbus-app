@@ -55,6 +55,12 @@ class NotificationService
 
     protected function doSendReminder(Appointment $appointment): bool
     {
+        if ($appointment->excluded_by_weekend_preference) {
+            Log::info("Reminder skipped by weekend preference for appointment {$appointment->id}");
+
+            return false;
+        }
+
         if ($appointment->requiresProfessionalReview()) {
             Log::info("Reminder blocked pending professional review for yellow appointment {$appointment->id}");
 
@@ -347,6 +353,10 @@ class NotificationService
      */
     public function notifyUnknownPatientCode(Appointment $appointment, ?string $patientCode): bool
     {
+        if ($appointment->excluded_by_weekend_preference) {
+            return false;
+        }
+
         // Get the user who owns this calendar
         $user = $this->getUserFromAppointment($appointment);
 
@@ -391,7 +401,7 @@ class NotificationService
      */
     public function escalateUnknownPatientCode(Appointment $appointment, ?string $patientCode): bool
     {
-        if (! $appointment->needsUnknownPatientEscalation()) {
+        if ($appointment->excluded_by_weekend_preference || ! $appointment->needsUnknownPatientEscalation()) {
             return false;
         }
 

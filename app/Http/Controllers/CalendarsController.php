@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\GoogleCalendarService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class CalendarsController extends Controller
@@ -52,6 +53,7 @@ class CalendarsController extends Controller
             'account' => $email,
             'calendars' => $all,
             'enabled' => $enabled,
+            'includeWeekends' => (bool) ($request->user()->include_weekends ?? true),
         ]);
     }
 
@@ -59,11 +61,16 @@ class CalendarsController extends Controller
     {
         $email = $request->input('account');
         $selected = $request->input('calendars', []);
+        $includeWeekends = $request->boolean('include_weekends');
         if (!$email) {
             return back()->withErrors(['account' => 'Falta la cuenta.']);
         }
 
-        DB::transaction(function () use ($email, $selected) {
+        DB::transaction(function () use ($request, $email, $selected, $includeWeekends) {
+            $request->user()->update([
+                'include_weekends' => $includeWeekends,
+            ]);
+
             // Deshabilitar todo primero (solo del usuario actual)
             DB::table('connected_calendars')
                 ->where('user_id', auth()->id())
@@ -81,8 +88,38 @@ class CalendarsController extends Controller
                     [ 'enabled' => 1, 'updated_at' => now(), 'created_at' => now() ]
                 );
             }
+
+            // Preserve existing appointments and their communication history.
+            // Only their operational inclusion changes with this preference.
+            if (! empty($selected)) {
+                $futureAppointments = DB::table('appointments')
+                    ->whereIn('calendar_id', $selected)
+                    ->where('start_at', '>', now())
+                    ->pluck('start_at', 'id');
+
+                DB::table('appointments')
+                    ->whereIn('id', $futureAppointments->keys())
+                    ->update([
+                        'excluded_by_weekend_preference' => false,
+                        'updated_at' => now(),
+                    ]);
+
+                if (! $includeWeekends) {
+                    $weekendIds = $futureAppointments
+                        ->filter(fn ($startAt) => Carbon::parse($startAt)->isWeekend())
+                        ->keys();
+
+                    DB::table('appointments')
+                        ->whereIn('id', $weekendIds)
+                        ->update([
+                            'excluded_by_weekend_preference' => true,
+                            'updated_at' => now(),
+                        ]);
+                }
+            }
         });
 
-        return redirect()->route('events.index', ['account' => $email])->with('status', 'Calendarios actualizados');
+        return redirect()->route('events.index', ['account' => $email])
+            ->with('status', 'Calendarios y preferencias actualizados');
     }
 }

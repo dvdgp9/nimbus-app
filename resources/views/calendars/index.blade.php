@@ -37,6 +37,22 @@
       @csrf
       <input type="hidden" name="account" value="{{ $account }}">
 
+      <fieldset class="space-y-2 pb-6 border-b border-white/10">
+        <legend class="text-sm font-semibold text-white">Días incluidos</legend>
+        <label class="flex items-start gap-4 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
+          <input
+            type="checkbox"
+            name="include_weekends"
+            value="1"
+            class="form-checkbox mt-0.5"
+            {{ $includeWeekends ? 'checked' : '' }}>
+          <span class="flex-1">
+            <span class="block text-base font-semibold text-white">Incluir sábados y domingos</span>
+            <span class="block text-sm text-white/60 mt-1">Si la desactivas, las citas de fin de semana no aparecerán ni generarán recordatorios o alertas.</span>
+          </span>
+        </label>
+      </fieldset>
+
       <div class="space-y-3">
         @forelse ($calendars as $cal)
           <label class="flex items-start gap-4 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer">

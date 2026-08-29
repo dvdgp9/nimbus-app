@@ -31,6 +31,7 @@ class UnknownPatientEscalationTest extends TestCase
             $table->string('timezone')->default('Europe/Madrid');
             $table->unsignedBigInteger('patient_id')->nullable();
             $table->string('nimbus_status')->default('pending');
+            $table->boolean('excluded_by_weekend_preference')->default(false);
             $table->boolean('unknown_patient_notified')->default(false);
             $table->timestamp('unknown_patient_escalated_at')->nullable();
             $table->timestamps();

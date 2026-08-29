@@ -35,6 +35,7 @@ class UnrecognizedAppointmentNoticeTest extends TestCase
             $table->string('timezone')->default('Europe/Madrid');
             $table->unsignedBigInteger('patient_id')->nullable();
             $table->string('nimbus_status')->default('pending');
+            $table->boolean('excluded_by_weekend_preference')->default(false);
             $table->boolean('unknown_patient_notified')->default(false);
             $table->timestamp('unknown_patient_escalated_at')->nullable();
             $table->timestamps();
@@ -105,6 +106,14 @@ class UnrecognizedAppointmentNoticeTest extends TestCase
     {
         $this->appointment('🗓 Sesión con Ana', now()->addDays(3))
             ->update(['unknown_patient_notified' => true]);
+
+        $this->assertSame([], $this->runSync());
+    }
+
+    public function test_it_does_not_warn_about_an_event_excluded_by_the_weekend_preference(): void
+    {
+        $this->appointment('🗓 Sesión con Ana', now()->addDays(3))
+            ->update(['excluded_by_weekend_preference' => true]);
 
         $this->assertSame([], $this->runSync());
     }

@@ -191,7 +191,8 @@ class SyncCalendars extends Command
         }
 
         // Find appointments that look like first sessions and haven't been notified
-        $appointments = Appointment::where('first_session_notified', false)
+        $appointments = Appointment::includedByCalendarPreference()
+            ->where('first_session_notified', false)
             ->where('summary', 'like', FirstSessionService::FIRST_SESSION_SQL_LIKE)
             ->whereNull('patient_id')
             ->whereIn('calendar_id', function ($query) use ($userId) {
@@ -229,7 +230,8 @@ class SyncCalendars extends Command
         // 2. Have NOT been notified yet about unknown patient code
         // 3. Are NOT first sessions (those are handled separately)
         // 4. Belong to this user's calendars
-        $appointments = Appointment::whereNull('patient_id')
+        $appointments = Appointment::includedByCalendarPreference()
+            ->whereNull('patient_id')
             ->where('unknown_patient_notified', false)
             ->where('start_at', '>', now()) // Only future appointments
             ->where(function ($query) {
@@ -277,7 +279,8 @@ class SyncCalendars extends Command
      */
     protected function escalateUnknownPatientCodes(int $userId): int
     {
-        $appointments = Appointment::whereNull('patient_id')
+        $appointments = Appointment::includedByCalendarPreference()
+            ->whereNull('patient_id')
             ->where('unknown_patient_notified', true)
             ->whereNull('unknown_patient_escalated_at')
             ->where('start_at', '>', now())
@@ -311,6 +314,7 @@ class SyncCalendars extends Command
         }
 
         $appointments = Appointment::query()
+            ->includedByCalendarPreference()
             ->with('patient.user')
             ->where('google_color_id', Appointment::GOOGLE_YELLOW_COLOR_ID)
             ->whereNull('professional_review_notified_at')

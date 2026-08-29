@@ -59,6 +59,7 @@ class User extends Authenticatable
         'avatar',
         'onboarding_step',
         'onboarding_completed_at',
+        'include_weekends',
     ];
 
     /**
@@ -99,6 +100,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'include_weekends' => 'boolean',
         ];
     }
 }

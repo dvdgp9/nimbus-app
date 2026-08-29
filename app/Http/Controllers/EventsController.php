@@ -41,6 +41,7 @@ class EventsController extends Controller
         // Get ALL appointments from user's calendars (next 30 days)
         // Don't filter by patient ownership - show all events
         $appointments = Appointment::with('patient')
+            ->includedByCalendarPreference()
             ->when($calendarIds, function ($query) use ($calendarIds) {
                 $query->whereIn('calendar_id', $calendarIds);
             })

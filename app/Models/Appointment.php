@@ -55,6 +55,7 @@ class Appointment extends Model
         'cancelled_at',
         'last_synced_at',
         'raw_payload',
+        'excluded_by_weekend_preference',
     ];
 
     protected $casts = [
@@ -69,6 +70,7 @@ class Appointment extends Model
         'unknown_patient_escalated_at' => 'datetime',
         'unconfirmed_alert_sent_at' => 'datetime',
         'raw_payload' => 'array',
+        'excluded_by_weekend_preference' => 'boolean',
     ];
 
     /**
@@ -108,6 +110,7 @@ class Appointment extends Model
         // We keep the "don't notify last-minute appointments" rule (created at least
         // 24h before the appointment), to preserve previous business behaviour.
         return $query
+            ->includedByCalendarPreference()
             ->where('start_at', '>', now())
             ->where('start_at', '<=', now()->addHours($hoursBefore))
             ->whereRaw('TIMESTAMPDIFF(HOUR, created_at, start_at) >= ?', [24])
@@ -127,6 +130,7 @@ class Appointment extends Model
     public function scopeAwaitingPatientResponse($query, int $hoursBefore)
     {
         return $query
+            ->includedByCalendarPreference()
             ->where('start_at', '>', now())
             ->where('start_at', '<=', now()->addHours($hoursBefore))
             ->where('nimbus_status', 'reminder_sent')
@@ -141,12 +145,18 @@ class Appointment extends Model
                      ->with('patient');
     }
 
+    public function scopeIncludedByCalendarPreference($query)
+    {
+        return $query->where('excluded_by_weekend_preference', false);
+    }
+
     /**
      * Helper methods
      */
     public function canSendReminder(): bool
     {
-        return $this->nimbus_status === 'pending'
+        return ! $this->excluded_by_weekend_preference
+            && $this->nimbus_status === 'pending'
             && is_null($this->reminder_sent_at)
             && $this->start_at->isFuture();
     }
