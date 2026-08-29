@@ -16,6 +16,8 @@ class Appointment extends Model
 {
     public const GOOGLE_YELLOW_COLOR_ID = '5';
 
+    public const BLOCKING_EVENT_TITLE = 'bloqueo';
+
     /**
      * N1: hours before the session at which an unresolved unknown patient code
      * is escalated with a second, urgent email. Set above the 48h reminder so
@@ -110,7 +112,7 @@ class Appointment extends Model
         // We keep the "don't notify last-minute appointments" rule (created at least
         // 24h before the appointment), to preserve previous business behaviour.
         return $query
-            ->includedByCalendarPreference()
+            ->actionable()
             ->where('start_at', '>', now())
             ->where('start_at', '<=', now()->addHours($hoursBefore))
             ->whereRaw('TIMESTAMPDIFF(HOUR, created_at, start_at) >= ?', [24])
@@ -130,7 +132,7 @@ class Appointment extends Model
     public function scopeAwaitingPatientResponse($query, int $hoursBefore)
     {
         return $query
-            ->includedByCalendarPreference()
+            ->actionable()
             ->where('start_at', '>', now())
             ->where('start_at', '<=', now()->addHours($hoursBefore))
             ->where('nimbus_status', 'reminder_sent')
@@ -150,15 +152,32 @@ class Appointment extends Model
         return $query->where('excluded_by_weekend_preference', false);
     }
 
+    public function scopeActionable($query)
+    {
+        return $query
+            ->includedByCalendarPreference()
+            ->whereRaw('LOWER(TRIM(summary)) != ?', [self::BLOCKING_EVENT_TITLE]);
+    }
+
     /**
      * Helper methods
      */
     public function canSendReminder(): bool
     {
-        return ! $this->excluded_by_weekend_preference
+        return ! $this->isExcludedFromAutomation()
             && $this->nimbus_status === 'pending'
             && is_null($this->reminder_sent_at)
             && $this->start_at->isFuture();
+    }
+
+    public function isBlockingEvent(): bool
+    {
+        return Str::lower(trim($this->summary ?? '')) === self::BLOCKING_EVENT_TITLE;
+    }
+
+    public function isExcludedFromAutomation(): bool
+    {
+        return (bool) $this->excluded_by_weekend_preference || $this->isBlockingEvent();
     }
 
     /**

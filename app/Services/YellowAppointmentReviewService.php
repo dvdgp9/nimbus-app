@@ -20,7 +20,7 @@ class YellowAppointmentReviewService
     public function notify(Appointment $appointment, User $user): bool
     {
         if (
-            $appointment->excluded_by_weekend_preference
+            $appointment->isExcludedFromAutomation()
             || ! $appointment->requiresProfessionalReview()
             || $appointment->professional_review_notified_at
             || $appointment->reminder_sent_at

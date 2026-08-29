@@ -319,7 +319,7 @@ class OnboardingController extends Controller
             ->all();
 
         return Appointment::query()
-            ->includedByCalendarPreference()
+            ->actionable()
             ->whereIn('calendar_id', $calendarIds)
             ->where('start_at', '>=', now())
             ->where('start_at', '<=', now()->addDays(30))

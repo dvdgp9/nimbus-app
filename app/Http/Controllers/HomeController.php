@@ -44,7 +44,7 @@ class HomeController extends Controller
         // Upcoming appointments (next 7 days)
         $dashboardDaysAhead = 7;
         $upcomingAppointmentsQuery = Appointment::with('patient')
-            ->includedByCalendarPreference()
+            ->actionable()
             ->when($calendarIds, function ($query) use ($calendarIds) {
                 $query->whereIn('calendar_id', $calendarIds);
             })
@@ -81,7 +81,7 @@ class HomeController extends Controller
             ->count();
         
         // This week's confirmations
-        $confirmedThisWeek = Appointment::includedByCalendarPreference()
+        $confirmedThisWeek = Appointment::actionable()
             ->where('nimbus_status', 'confirmed')
             ->whereBetween('confirmed_at', [now()->startOfWeek(), now()->endOfWeek()])
             ->count();

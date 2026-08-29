@@ -55,8 +55,8 @@ class NotificationService
 
     protected function doSendReminder(Appointment $appointment): bool
     {
-        if ($appointment->excluded_by_weekend_preference) {
-            Log::info("Reminder skipped by weekend preference for appointment {$appointment->id}");
+        if ($appointment->isExcludedFromAutomation()) {
+            Log::info("Reminder skipped because appointment {$appointment->id} is excluded from automation");
 
             return false;
         }
@@ -353,7 +353,7 @@ class NotificationService
      */
     public function notifyUnknownPatientCode(Appointment $appointment, ?string $patientCode): bool
     {
-        if ($appointment->excluded_by_weekend_preference) {
+        if ($appointment->isExcludedFromAutomation()) {
             return false;
         }
 
@@ -401,7 +401,7 @@ class NotificationService
      */
     public function escalateUnknownPatientCode(Appointment $appointment, ?string $patientCode): bool
     {
-        if ($appointment->excluded_by_weekend_preference || ! $appointment->needsUnknownPatientEscalation()) {
+        if ($appointment->isExcludedFromAutomation() || ! $appointment->needsUnknownPatientEscalation()) {
             return false;
         }
 

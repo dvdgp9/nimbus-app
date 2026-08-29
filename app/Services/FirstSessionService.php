@@ -185,7 +185,7 @@ class FirstSessionService
      */
     public function processFirstSession(Appointment $appointment, User $user): bool
     {
-        if ($appointment->excluded_by_weekend_preference) {
+        if ($appointment->isExcludedFromAutomation()) {
             return false;
         }
 

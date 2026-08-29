@@ -163,6 +163,32 @@ class WeekendCalendarPreferenceTest extends TestCase
         );
     }
 
+    public function test_a_blocking_event_is_not_actionable_or_remindable(): void
+    {
+        $monday = now()->next(Carbon::MONDAY)->setTime(10, 0);
+        $id = $this->appointment('evt-block', 'cal-work', $monday);
+        DB::table('appointments')->where('id', $id)->update(['summary' => '  BlOqUeO  ']);
+
+        $appointment = Appointment::findOrFail($id);
+
+        $this->assertTrue($appointment->isBlockingEvent());
+        $this->assertFalse($appointment->canSendReminder());
+        $this->assertSame(0, Appointment::query()->actionable()->count());
+    }
+
+    public function test_a_similar_but_non_exact_title_remains_actionable(): void
+    {
+        $monday = now()->next(Carbon::MONDAY)->setTime(10, 0);
+        $id = $this->appointment('evt-block-detail', 'cal-work', $monday);
+        DB::table('appointments')->where('id', $id)->update(['summary' => 'Bloqueo equipo']);
+
+        $appointment = Appointment::findOrFail($id);
+
+        $this->assertFalse($appointment->isBlockingEvent());
+        $this->assertTrue($appointment->canSendReminder());
+        $this->assertSame([$id], Appointment::query()->actionable()->pluck('id')->all());
+    }
+
     public function test_calendar_settings_show_the_weekend_control(): void
     {
         $user = $this->user(includeWeekends: false);

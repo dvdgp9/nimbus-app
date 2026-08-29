@@ -118,6 +118,15 @@ class UnrecognizedAppointmentNoticeTest extends TestCase
         $this->assertSame([], $this->runSync());
     }
 
+    public function test_it_does_not_warn_about_events_named_bloqueo(): void
+    {
+        $this->appointment('Bloqueo', now()->addDays(3));
+        $this->appointment('  bloqueo  ', now()->addDays(4));
+        $this->appointment('BLOQUEO', now()->addDays(5));
+
+        $this->assertSame([], $this->runSync());
+    }
+
     public function test_it_ignores_first_sessions_and_disabled_calendars(): void
     {
         $this->appointment('Primera sesión con Marta', now()->addDays(3));
