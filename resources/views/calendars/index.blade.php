@@ -61,7 +61,7 @@
               name="calendars[]" 
               value="{{ $cal['id'] }}" 
               class="form-checkbox mt-0.5"
-              {{ (isset($enabled[$cal['id']]) && $enabled[$cal['id']]) || $cal['primary'] ? 'checked' : '' }}>
+              {{ (array_key_exists($cal['id'], $enabled) ? (bool) $enabled[$cal['id']] : (bool) $cal['primary']) ? 'checked' : '' }}>
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <div class="text-base font-semibold text-white transition">

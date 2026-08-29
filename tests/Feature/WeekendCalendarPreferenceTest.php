@@ -186,6 +186,63 @@ class WeekendCalendarPreferenceTest extends TestCase
             ->assertSee('no aparecerán ni generarán recordatorios o alertas');
     }
 
+    public function test_an_explicitly_disabled_primary_calendar_stays_unchecked(): void
+    {
+        $user = $this->user(includeWeekends: true);
+        $this->calendar($user);
+        DB::table('connected_calendars')
+            ->where('user_id', $user->id)
+            ->where('calendar_id', 'cal-work')
+            ->update(['enabled' => false]);
+
+        $this->mock(GoogleCalendarService::class, function ($mock): void {
+            $mock->shouldReceive('listCalendars')
+                ->once()
+                ->andReturn([[
+                    'id' => 'cal-work',
+                    'summary' => 'Primary calendar',
+                    'primary' => true,
+                    'timeZone' => 'Europe/Madrid',
+                ]]);
+        });
+
+        $response = $this->actingAs($user)->get(route('calendars.index'));
+
+        $response->assertOk();
+        $this->assertSame(1, preg_match(
+            '/<input\b(?=[^>]*name="calendars\[\]")(?=[^>]*value="cal-work")[^>]*>/s',
+            $response->getContent(),
+            $checkbox,
+        ));
+        $this->assertStringNotContainsString('checked', $checkbox[0]);
+    }
+
+    public function test_a_primary_calendar_is_checked_by_default_before_it_has_a_saved_state(): void
+    {
+        $user = $this->user(includeWeekends: true);
+
+        $this->mock(GoogleCalendarService::class, function ($mock): void {
+            $mock->shouldReceive('listCalendars')
+                ->once()
+                ->andReturn([[
+                    'id' => 'cal-primary',
+                    'summary' => 'Primary calendar',
+                    'primary' => true,
+                    'timeZone' => 'Europe/Madrid',
+                ]]);
+        });
+
+        $response = $this->actingAs($user)->get(route('calendars.index'));
+
+        $response->assertOk();
+        $this->assertSame(1, preg_match(
+            '/<input\b(?=[^>]*name="calendars\[\]")(?=[^>]*value="cal-primary")[^>]*>/s',
+            $response->getContent(),
+            $checkbox,
+        ));
+        $this->assertStringContainsString('checked', $checkbox[0]);
+    }
+
     public function test_weekend_preference_migrations_are_reversible(): void
     {
         Schema::table('users', function (Blueprint $table): void {
