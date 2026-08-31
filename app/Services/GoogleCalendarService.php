@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Patient;
 use App\Models\User;
 use Google\Service\Calendar as GoogleCalendar;
 use Illuminate\Support\Facades\DB;
@@ -253,8 +254,8 @@ class GoogleCalendarService
         
         // Try to match a code at the beginning
         // Pattern: alphanumeric code followed by separator (-, :, space) or end of string
-        if (preg_match('/^([A-Za-z0-9]+)(?:\s*[-:]\s*|\s+|$)/', $title, $matches)) {
-            return strtoupper($matches[1]); // Normalize to uppercase
+        if (preg_match('/^([\p{L}\p{M}\p{N}]+)(?:\s*[-:]\s*|\s+|$)/u', $title, $matches)) {
+            return Patient::normalizeCode($matches[1]);
         }
         
         return null;

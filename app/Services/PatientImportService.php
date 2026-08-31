@@ -86,7 +86,7 @@ class PatientImportService
         $existingByPhone = [];
         foreach ($existing as $p) {
             if ($p->code) {
-                $existingByCode[strtoupper($p->code)] = $p->id;
+                $existingByCode[Patient::normalizeCode($p->code)] = $p->id;
             }
             if ($p->email) {
                 $existingByEmail[strtolower($p->email)] = $p->id;
@@ -223,7 +223,7 @@ class PatientImportService
     {
         $get = fn ($idx) => $idx !== null ? ($row[$idx] ?? '') : '';
 
-        $code = strtoupper(trim((string) $get($columns['code'])));
+        $code = Patient::normalizeCode((string) $get($columns['code']));
         $name = $this->cleanName((string) $get($columns['name']));
         $email = strtolower(trim((string) $get($columns['email'])));
         $phone = $this->normalizePhone((string) $get($columns['phone']));

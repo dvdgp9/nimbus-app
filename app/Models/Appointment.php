@@ -364,8 +364,8 @@ class Appointment extends Model
         // Remove "OK - " prefix if present
         $title = preg_replace('/^OK\s*-\s*/i', '', $title);
 
-        if (preg_match('/^([A-Za-z0-9]+)(?:\s*[-:]\s*|\s+|$)/', $title, $matches)) {
-            return strtoupper($matches[1]);
+        if (preg_match('/^([\p{L}\p{M}\p{N}]+)(?:\s*[-:]\s*|\s+|$)/u', $title, $matches)) {
+            return Patient::normalizeCode($matches[1]);
         }
 
         return null;
@@ -378,7 +378,7 @@ class Appointment extends Model
         // Remove "OK - " prefix if present
         $title = preg_replace('/^OK\s*-\s*/i', '', $title);
 
-        if (preg_match('/^[A-Za-z0-9]+(?:\s*[-:]\s*|\s+)(.*)$/', $title, $matches)) {
+        if (preg_match('/^[\p{L}\p{M}\p{N}]+(?:\s*[-:]\s*|\s+)(.*)$/u', $title, $matches)) {
             return trim($matches[1]) ?: null;
         }
 

@@ -172,7 +172,7 @@ class PatientsController extends Controller
         $validated['user_id'] = auth()->id();
         
         // Normalize code to uppercase
-        $validated['code'] = strtoupper($validated['code']);
+        $validated['code'] = Patient::normalizeCode($validated['code']);
         $validated['phone'] = $this->normalizePhone($validated['phone'] ?? null);
         
         // Set consent date if any consent is given
@@ -261,7 +261,7 @@ class PatientsController extends Controller
         ]);
 
         // Normalize code to uppercase
-        $validated['code'] = strtoupper($validated['code']);
+        $validated['code'] = Patient::normalizeCode($validated['code']);
         $validated['phone'] = $this->normalizePhone($validated['phone'] ?? null);
         
         // Update consent date if consent is being given for the first time

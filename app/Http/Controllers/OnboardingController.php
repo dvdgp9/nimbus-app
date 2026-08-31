@@ -183,7 +183,7 @@ class OnboardingController extends Controller
         ]);
 
         $user = auth()->user();
-        $code = strtoupper($validated['code']);
+        $code = Patient::normalizeCode($validated['code']);
 
         // Check for duplicate
         if ($user->patients()->where('code', $code)->exists()) {

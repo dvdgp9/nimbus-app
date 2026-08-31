@@ -6,9 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class Patient extends Model
 {
+    public static function normalizeCode(?string $code): ?string
+    {
+        $normalized = Str::upper(trim((string) $code));
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    public function setCodeAttribute(?string $code): void
+    {
+        $this->attributes['code'] = self::normalizeCode($code);
+    }
+
     protected $fillable = [
         'user_id',
         'code',

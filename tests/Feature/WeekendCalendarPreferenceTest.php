@@ -149,6 +149,28 @@ class WeekendCalendarPreferenceTest extends TestCase
         ]);
     }
 
+    public function test_calendar_sync_matches_an_accented_patient_code(): void
+    {
+        $user = $this->user(includeWeekends: true);
+        $patientId = DB::table('patients')->insertGetId([
+            'user_id' => $user->id,
+            'code' => 'ÁÑ12',
+            'name' => 'María José',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $monday = now()->next(Carbon::MONDAY)->setTime(10, 0);
+        $event = $this->googleEvent('evt-accented-code', $monday);
+        $event['summary'] = 'áñ12 - Sesión BP';
+
+        app(GoogleCalendarService::class)->syncAppointments([$event], $user->id, ['cal-work'], 720);
+
+        $appointment = Appointment::where('google_event_id', 'evt-accented-code')->firstOrFail();
+        $this->assertSame($patientId, $appointment->patient_id);
+        $this->assertSame('ÁÑ12', $appointment->suggested_patient_code);
+        $this->assertSame('María José', DB::table('patients')->where('id', $patientId)->value('name'));
+    }
+
     public function test_excluded_appointment_cannot_send_a_reminder(): void
     {
         $saturday = now()->next(Carbon::SATURDAY)->setTime(10, 0);
