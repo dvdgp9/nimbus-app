@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\AcumbamailService;
 use App\Services\NotificationService;
 use App\Services\ReminderTemplateResolver;
+use App\Services\SmsSegmentCalculator;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
@@ -244,6 +245,45 @@ class ReminderTemplateResolverTest extends TestCase
             'status' => 'failed',
         ]);
         $this->assertSame('pending', $appointment->fresh()->nimbus_status);
+    }
+
+    public function test_compact_sms_uses_one_standard_segment_and_one_management_link(): void
+    {
+        [$user, $appointment] = $this->appointmentForUser(null);
+        $appointment->patient->update([
+            'phone' => '+34600000000',
+            'consent_sms' => true,
+        ]);
+        MessageTemplate::create([
+            'user_id' => $user->id,
+            'name' => 'SMS económico',
+            'channel' => 'sms',
+            'body' => 'Cita el {{appointment_date_short}} a las {{appointment_time}}. Opciones: {{manage_link}}',
+            'is_default' => true,
+        ]);
+
+        $capturedMessage = null;
+        $this->mock(AcumbamailService::class, function ($mock) use (&$capturedMessage): void {
+            $mock->shouldReceive('sendSMS')
+                ->once()
+                ->withArgs(function (string $phone, string $message) use (&$capturedMessage): bool {
+                    $capturedMessage = $message;
+
+                    return $phone === '+34600000000';
+                })
+                ->andReturn('sms-123');
+        });
+
+        $this->assertTrue(app(NotificationService::class)->sendReminder($appointment));
+        $this->assertNotNull($capturedMessage);
+        $this->assertStringContainsString('Opciones: http', $capturedMessage);
+        $this->assertStringNotContainsString('{{', $capturedMessage);
+        $this->assertSame([
+            'encoding' => 'standard',
+            'units' => mb_strlen($capturedMessage),
+            'segments' => 1,
+        ], SmsSegmentCalculator::analyse($capturedMessage));
+        $this->assertDatabaseCount('shortlinks', 3);
     }
 
     private function appointmentForUser(?string $messageCode): array

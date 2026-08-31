@@ -33,6 +33,21 @@
               </button>
             </form>
 
+            @if($cancelUrl || $rescheduleUrl)
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                @if($cancelUrl)
+                  <a href="{{ $cancelUrl }}" class="shortlink-action-button shortlink-action-cancel">
+                    Cancelar cita
+                  </a>
+                @endif
+                @if($rescheduleUrl)
+                  <a href="{{ $rescheduleUrl }}" class="shortlink-action-button shortlink-action-reschedule">
+                    Cambiar cita
+                  </a>
+                @endif
+              </div>
+            @endif
+
             <p class="text-xs text-white/45 mt-4">
               La cita no cambiará hasta que pulses el botón.
             </p>

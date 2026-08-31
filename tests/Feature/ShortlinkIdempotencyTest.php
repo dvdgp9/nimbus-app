@@ -53,11 +53,30 @@ class ShortlinkIdempotencyTest extends TestCase
 
         $this->get(route('shortlink.handle', $link->token))
             ->assertOk()
-            ->assertSee('Confirma tu asistencia')
-            ->assertSee('Confirmar definitivamente');
+            ->assertSee('Gestiona tu cita')
+            ->assertSee('Confirmar asistencia');
 
         $this->assertSame('pending', $appointment->fresh()->nimbus_status);
         $this->assertFalse($link->fresh()->used);
+    }
+
+    public function test_confirmation_page_can_manage_all_patient_actions_from_one_link(): void
+    {
+        $appointment = $this->appointment();
+        $confirm = $this->shortlink($appointment, 'confirm');
+        $cancel = $this->shortlink($appointment, 'cancel');
+        $reschedule = $this->shortlink($appointment, 'reschedule');
+
+        $this->get(route('shortlink.handle', $confirm->token))
+            ->assertOk()
+            ->assertSee('Gestiona tu cita')
+            ->assertSee('Confirmar asistencia')
+            ->assertSee('Cancelar cita')
+            ->assertSee('Cambiar cita')
+            ->assertSee(route('shortlink.handle', $cancel->token), false)
+            ->assertSee(route('shortlink.handle', $reschedule->token), false);
+
+        $this->assertSame('pending', $appointment->fresh()->nimbus_status);
     }
 
     public function test_post_explicitly_confirms_the_appointment(): void

@@ -142,7 +142,7 @@ class NotificationService
         $rescheduleLink = Shortlink::createForAppointment($appointment, 'reschedule');
 
         // Build template data for dynamic fields
-        $templateData = $this->buildTemplateData($appointment, $patient, $confirmLink, $cancelLink);
+        $templateData = $this->buildTemplateData($appointment, $patient, $confirmLink, $cancelLink, $rescheduleLink);
 
         $data = [
             'appointment' => $appointment,
@@ -212,23 +212,31 @@ class NotificationService
     /**
      * Build template data array for dynamic field replacement
      */
-    protected function buildTemplateData(Appointment $appointment, Patient $patient, Shortlink $confirmLink, Shortlink $cancelLink): array
+    protected function buildTemplateData(
+        Appointment $appointment,
+        Patient $patient,
+        Shortlink $confirmLink,
+        Shortlink $cancelLink,
+        Shortlink $rescheduleLink,
+    ): array
     {
         $professional = $patient->user;
-
-        $rescheduleLink = RescheduleLinkService::forAppointment($appointment);
 
         return [
             'patient_name' => $patient->name,
             'patient_first_name' => explode(' ', $patient->name)[0],
             'patient_email' => $patient->email ?? '',
             'appointment_date' => $appointment->formatted_date,
+            'appointment_date_short' => $appointment->start_at->format('d/m'),
             'appointment_time' => $appointment->formatted_time,
             'appointment_summary' => $appointment->summary ?? 'Cita',
             'professional_name' => $professional?->name ?? 'Tu profesional',
             'confirm_link' => $confirmLink->getUrl(),
             'cancel_link' => $cancelLink->getUrl(),
-            'reschedule_link' => $rescheduleLink,
+            'reschedule_link' => $rescheduleLink->getUrl(),
+            // The confirmation page also exposes cancellation and rescheduling,
+            // allowing an economical SMS to carry one patient-facing URL.
+            'manage_link' => $confirmLink->getUrl(),
             'hangout_link' => $appointment->hangout_link ?? '',
         ];
     }

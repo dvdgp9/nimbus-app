@@ -38,7 +38,9 @@ class Shortlink extends Model
      */
     public static function generateToken(): string
     {
-        return Str::random(32) . '-' . bin2hex(random_bytes(16));
+        // 32 random base-62 characters already provide ample entropy while
+        // keeping patient-facing SMS links short enough for one segment.
+        return Str::random(32);
     }
 
     /**

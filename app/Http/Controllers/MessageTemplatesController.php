@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\RescheduleLinkService;
+use App\Services\SmsSegmentCalculator;
 use App\Models\MessageTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -40,7 +40,7 @@ class MessageTemplatesController extends Controller
 
         // Default values defined here to avoid Blade parsing issues with {{ }}
         $defaultSubject = 'Recordatorio de tu cita del {{appointment_date}}';
-        $defaultBodySms = 'Hola {{patient_first_name}}, te recuerdo tu cita del {{appointment_date}} a las {{appointment_time}}. Confirmar: {{confirm_link}} · Cancelar: {{cancel_link}}';
+        $defaultBodySms = 'Cita el {{appointment_date_short}} a las {{appointment_time}}. Opciones: {{manage_link}}';
         $defaultBodyEmail = "Hola {{patient_first_name}},\n\nTe escribo para recordarte tu próxima sesión: el {{appointment_date}} a las {{appointment_time}}.\n\nSi todo sigue igual, confirma con un clic. Si no puedes asistir, avísame también con un clic y reorganizamos.\n\n[BOTON_CONFIRMAR]\n\n[BOTON_CANCELAR]\n\nUn abrazo,\n{{professional_name}}";
 
         return view('templates.create', [
@@ -246,12 +246,15 @@ class MessageTemplatesController extends Controller
         $parsedSubject = $this->applyVariables($subject, $sample['fields']);
 
         if ($channel === 'sms') {
+            $smsAnalysis = SmsSegmentCalculator::analyse($parsedBody);
+
             return response()->json([
                 'channel' => 'sms',
                 'body' => $parsedBody,
                 'subject' => $parsedSubject,
-                'charCount' => mb_strlen($parsedBody),
-                'smsSegments' => max(1, (int) ceil(mb_strlen($parsedBody) / 160)),
+                'charCount' => $smsAnalysis['units'],
+                'smsEncoding' => $smsAnalysis['encoding'],
+                'smsSegments' => $smsAnalysis['segments'],
             ]);
         }
 
@@ -349,12 +352,14 @@ class MessageTemplatesController extends Controller
             'patient_first_name' => 'María',
             'patient_email' => $patient->email,
             'appointment_date' => $appointment->formatted_date,
+            'appointment_date_short' => $appointment->start_at->format('d/m'),
             'appointment_time' => $appointment->formatted_time,
             'appointment_summary' => $appointment->summary,
             'professional_name' => $professionalName,
-            'confirm_link' => url('/link/preview-confirm'),
-            'cancel_link' => url('/link/preview-cancel'),
-            'reschedule_link' => RescheduleLinkService::forAppointment($appointment),
+            'confirm_link' => url('/link/'.str_repeat('a', 32)),
+            'cancel_link' => url('/link/'.str_repeat('b', 32)),
+            'reschedule_link' => url('/link/'.str_repeat('c', 32)),
+            'manage_link' => url('/link/'.str_repeat('a', 32)),
             'hangout_link' => '',
         ];
 

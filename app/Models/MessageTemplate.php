@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\SmsSegmentCalculator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -29,12 +30,14 @@ class MessageTemplate extends Model
         'patient_first_name' => 'Primer nombre del paciente',
         'patient_email' => 'Email del paciente',
         'appointment_date' => 'Fecha de la cita (ej: Lunes 27 de enero)',
+        'appointment_date_short' => 'Fecha corta de la cita (ej: 27/01)',
         'appointment_time' => 'Hora de la cita (ej: 10:00)',
         'appointment_summary' => 'Título/resumen de la cita',
         'professional_name' => 'Nombre del profesional',
         'confirm_link' => 'Enlace de confirmación',
         'cancel_link' => 'Enlace de cancelación',
         'reschedule_link' => 'Enlace para cambiar cita (WhatsApp)',
+        'manage_link' => 'Un único enlace para gestionar la cita',
         'hangout_link' => 'Enlace de videollamada',
     ];
 
@@ -105,12 +108,14 @@ class MessageTemplate extends Model
             'patient_first_name' => 'María',
             'patient_email' => 'maria@ejemplo.com',
             'appointment_date' => 'Lunes 27 de enero',
+            'appointment_date_short' => '27/01',
             'appointment_time' => '10:00',
             'appointment_summary' => 'Sesión de terapia',
             'professional_name' => 'Dr. Juan Pérez',
-            'confirm_link' => 'https://nimbus.app/link/abc123',
-            'cancel_link' => 'https://nimbus.app/link/xyz789',
-            'reschedule_link' => 'https://wa.me/34621072649?text=¡Hola!%20Me%20gustaría%20cambiar%20la%20cita%20del%2027/01',
+            'confirm_link' => 'https://nimbus.app/link/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            'cancel_link' => 'https://nimbus.app/link/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+            'reschedule_link' => 'https://nimbus.app/link/cccccccccccccccccccccccccccccccc',
+            'manage_link' => 'https://nimbus.app/link/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             'hangout_link' => 'https://meet.google.com/abc-defg-hij',
         ];
 
@@ -134,7 +139,7 @@ class MessageTemplate extends Model
     }
 
     /**
-     * Get estimated SMS segments (160 chars per segment)
+     * Get estimated SMS segments using Acumbamail's encoding limits.
      */
     public function getSmsSegments(): int
     {
@@ -142,7 +147,6 @@ class MessageTemplate extends Model
             return 0;
         }
 
-        $previewLength = strlen($this->getPreview());
-        return (int) ceil($previewLength / 160);
+        return SmsSegmentCalculator::analyse($this->getPreview())['segments'];
     }
 }

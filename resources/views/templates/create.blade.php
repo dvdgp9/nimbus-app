@@ -144,6 +144,14 @@
                   Fecha
                 </span>
               </button>
+              @if($isSms)
+              <button type="button" class="insert-field-btn px-3 py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 border border-purple-500/20 hover:border-purple-500/40 text-purple-300 rounded-lg text-sm font-medium transition-all" data-field="appointment_date_short" title="Fecha numérica que evita activar Unicode">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-purple-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  Fecha corta
+                </span>
+              </button>
+              @endif
               <button type="button" class="insert-field-btn px-3 py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 border border-purple-500/20 hover:border-purple-500/40 text-purple-300 rounded-lg text-sm font-medium transition-all" data-field="appointment_time" title="Hora de la cita">
                 <span class="flex items-center gap-1.5">
                   <svg class="w-4 h-4 text-purple-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -177,7 +185,14 @@
             <label class="block text-sm font-medium text-white/80 mt-4">
               Insertar enlaces
             </label>
+            <p class="text-xs text-white/50">Recomendado: usa solo “Gestionar cita”; desde esa página se puede confirmar, cancelar o cambiar.</p>
             <div class="flex flex-wrap gap-2">
+              <button type="button" class="insert-field-btn px-3 py-2 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 hover:from-cyan-500/20 hover:to-blue-500/20 border border-cyan-500/20 hover:border-cyan-500/40 text-cyan-300 rounded-lg text-sm font-medium transition-all" data-field="manage_link" title="Un único enlace para confirmar, cancelar o cambiar">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-cyan-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5m3.5-3.5 3-3a4 4 0 015.656 5.656l-1.5 1.5"></path></svg>
+                  Gestionar cita
+                </span>
+              </button>
               <button type="button" class="insert-field-btn px-3 py-2 bg-gradient-to-r from-emerald-500/10 to-green-500/10 hover:from-emerald-500/20 hover:to-green-500/20 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-300 rounded-lg text-sm font-medium transition-all" data-field="confirm_link" title="Enlace para confirmar">
                 <span class="flex items-center gap-1.5">
                   <svg class="w-4 h-4 text-emerald-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -258,6 +273,11 @@
                     <div class="flex items-center gap-1.5">
                       <span class="text-white/50 text-sm">Caracteres:</span>
                       <span id="char-count" class="text-white font-semibold">0</span>
+                    </div>
+                    <div class="w-px h-4 bg-white/20"></div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-white/50 text-sm">Codificación:</span>
+                      <span id="sms-encoding" class="text-white font-semibold">Estándar</span>
                     </div>
                     <div class="w-px h-4 bg-white/20"></div>
                     <div class="flex items-center gap-1.5">
@@ -428,6 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const previewBody = document.getElementById('preview-body');
   const charCount = document.getElementById('char-count');
   const smsSegments = document.getElementById('sms-segments');
+  const smsEncoding = document.getElementById('sms-encoding');
   const charProgress = document.getElementById('char-progress');
   const smsWarning = document.getElementById('sms-warning');
 
@@ -493,12 +514,14 @@ document.addEventListener('DOMContentLoaded', function () {
     'patient_first_name': 'María',
     'patient_name': 'María García López',
     'appointment_date': 'Lunes 27 de enero',
+    'appointment_date_short': '27/01',
     'appointment_time': '10:00',
     'appointment_summary': 'Sesión de terapia',
     'professional_name': @json(auth()->user()->name ?? 'tu psicóloga'),
-    'confirm_link': 'nimbus.app/c/abc',
-    'cancel_link': 'nimbus.app/x/xyz',
-    'reschedule_link': 'wa.me/...'
+    'confirm_link': @json(url('/link/' . str_repeat('a', 32))),
+    'cancel_link': @json(url('/link/' . str_repeat('b', 32))),
+    'reschedule_link': @json(url('/link/' . str_repeat('c', 32))),
+    'manage_link': @json(url('/link/' . str_repeat('a', 32)))
   };
   function applySampleSms(text) {
     let out = text;
@@ -513,17 +536,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const text = bodyField.value;
     const parsed = applySampleSms(text);
     if (previewBody) previewBody.textContent = parsed;
-    const len = parsed.length;
-    if (charCount) charCount.textContent = len;
-    const segments = Math.ceil(len / 160) || 1;
+    const isUnicode = /[^\x00-\x7F€]/u.test(parsed);
+    const characters = Array.from(parsed);
+    let units = characters.reduce((total, character) => total + (character.codePointAt(0) > 0xFFFF ? 2 : 1), 0);
+    if (!isUnicode) units += (parsed.match(/[\^{}\[\]~|\\€]/gu) || []).length;
+    const singleLimit = isUnicode ? 70 : 160;
+    const joinedLimit = isUnicode ? 67 : 153;
+    const segments = units <= singleLimit ? 1 : 1 + Math.ceil((units - singleLimit) / joinedLimit);
+    if (charCount) charCount.textContent = units;
+    if (smsEncoding) smsEncoding.textContent = isUnicode ? 'Unicode' : 'Estándar';
     if (smsSegments) smsSegments.textContent = segments;
     if (charProgress) {
-      const percent = Math.min((len / 160) * 100, 100);
+      const percent = Math.min((units / singleLimit) * 100, 100);
       charProgress.style.width = percent + '%';
-      if (len > 320) {
+      if (segments > 2) {
         charProgress.className = 'h-full bg-red-500 rounded-full transition-all duration-300';
         smsWarning && smsWarning.classList.remove('hidden');
-      } else if (len > 160) {
+      } else if (segments > 1) {
         charProgress.className = 'h-full bg-amber-500 rounded-full transition-all duration-300';
         smsWarning && smsWarning.classList.remove('hidden');
       } else {

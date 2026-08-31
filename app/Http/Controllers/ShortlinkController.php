@@ -62,9 +62,9 @@ class ShortlinkController extends Controller
 
         $content = match ($action) {
             'confirm' => [
-                'title' => 'Confirma tu asistencia',
-                'message' => 'Revisa la fecha y la hora antes de confirmar tu sesión.',
-                'button' => 'Confirmar definitivamente',
+                'title' => 'Gestiona tu cita',
+                'message' => 'Revisa la fecha y la hora y elige qué necesitas hacer.',
+                'button' => 'Confirmar asistencia',
                 'buttonClass' => 'shortlink-action-confirm',
             ],
             'cancel' => [
@@ -106,6 +106,12 @@ class ShortlinkController extends Controller
             ...$content,
             'appointment' => $appointment,
             'token' => $shortlink->token,
+            'cancelUrl' => $action === 'confirm'
+                ? $this->relatedActionUrl($appointment, 'cancel')
+                : null,
+            'rescheduleUrl' => $action === 'confirm'
+                ? $this->relatedActionUrl($appointment, 'reschedule')
+                : null,
         ]);
     }
 
@@ -277,6 +283,16 @@ class ShortlinkController extends Controller
             'message' => 'Acción no válida',
             'detail' => 'La acción solicitada no es válida.',
         ]);
+    }
+
+    private function relatedActionUrl(Appointment $appointment, string $action): ?string
+    {
+        $link = $appointment->shortlinks()
+            ->where('action', $action)
+            ->latest('id')
+            ->first();
+
+        return $link?->isValid() ? $link->getUrl() : null;
     }
 
     /**

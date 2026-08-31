@@ -31,6 +31,9 @@
 - Acumbamail explicitly treats accents, emoji, `é`, and `ñ` as Unicode for billing.
 - Some destinations charge two base credits per SMS segment. The actual normalized country prefix therefore matters in addition to encoding and length.
 - A visible balance expressed as a number of Spanish SMS does not imply that every personalized reminder costs one credit; one long Unicode reminder can consume several credits.
+- Nimbus estimates the expanded message with the same limits in both PHP and the template editor. The recommended template uses a numeric date and one management shortlink so a Spanish reminder fits in one standard segment.
+- New shortlink tokens use 32 random base-62 characters. Existing longer links remain valid.
+- `manage_link` points to a safe GET page that offers confirmation, cancellation, and rescheduling. This replaces three URLs in economical templates without removing any patient action.
 
 ## Recipient format and delivery diagnostics
 
