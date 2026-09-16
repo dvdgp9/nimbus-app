@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\User;
 use Google\Service\Calendar as GoogleCalendar;
@@ -130,14 +131,25 @@ class GoogleCalendarService
 
             // BUG-B4: if the appointment was moved in Google Calendar (start_at changed),
             // reset reminder state so the patient is notified again with the new date.
-            if ($existing && $existing->start_at !== (string) $newStart) {
+            // Compared as dates, not strings: a false positive would ask a patient who
+            // already confirmed to confirm again.
+            $removeConfirmedPrefix = false;
+            if ($existing && $newStart !== null && ! Carbon::parse($existing->start_at)->eq(Carbon::parse($newStart))) {
                 $data['reminder_sent_at'] = null;
-                // Only reset status if it was advanced by the reminder pipeline.
-                // Preserve confirmed/cancelled states the patient already set.
-                if (in_array($existing->nimbus_status, ['reminder_sent', 'pending'], true)) {
+                $data['rescheduled_at'] = now();
+                // A confirmation was for the old date, so it starts over. A cancellation
+                // is kept: cancelled sessions get parked on Sunday, and that move must
+                // not send the patient a reminder.
+                if (in_array($existing->nimbus_status, ['pending', 'reminder_sent', 'rescheduled', 'confirmed'], true)) {
                     $data['nimbus_status'] = 'pending';
+                    $data['confirmed_at'] = null;
+                    $data['unconfirmed_alert_sent_at'] = null;
+                    $removeConfirmedPrefix = $existing->nimbus_status === 'confirmed';
                 }
-                Log::info("Appointment {$existing->id} moved in Google ({$existing->start_at} → {$newStart}). Reminder state reset.");
+                Log::info("Appointment {$existing->id} moved in Google ({$existing->start_at} → {$newStart}). Reminder state reset.", [
+                    'previous_status' => $existing->nimbus_status,
+                    'new_status' => $data['nimbus_status'] ?? $existing->nimbus_status,
+                ]);
             }
 
             // BUG-B6: only set created_at on first insert, not on every sync.
@@ -149,6 +161,11 @@ class GoogleCalendarService
                 ['google_event_id' => $e['google_event_id']],
                 $data
             );
+
+            // "OK - " marked the old date as confirmed. Confirming the new date adds it back.
+            if ($removeConfirmedPrefix) {
+                Appointment::find($existing->id)?->removeGoogleCalendarTitlePrefix('OK - ');
+            }
         }
 
         // BUG-B1: never delete appointments based on a possibly-broken Google response.

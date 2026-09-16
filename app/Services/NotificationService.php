@@ -10,6 +10,7 @@ use App\Models\Patient;
 use App\Models\Shortlink;
 use App\Models\User;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -122,8 +123,7 @@ class NotificationService
         // BUG-B7: cap retries. If this reminder has already failed too many times
         // in the last 24h, stop trying and alert the professional so they can
         // contact the patient another way.
-        $recentFailures = Communication::where('appointment_id', $appointment->id)
-            ->where('type', 'reminder')
+        $recentFailures = $this->remindersForCurrentDate($appointment)
             ->where('status', 'failed')
             ->where('created_at', '>=', now()->subHours(24))
             ->count();
@@ -248,11 +248,22 @@ class NotificationService
      */
     protected function channelAlreadySent(Appointment $appointment, string $channel): bool
     {
-        return Communication::where('appointment_id', $appointment->id)
+        return $this->remindersForCurrentDate($appointment)
             ->where('channel', $channel)
-            ->where('type', 'reminder')
             ->whereIn('status', ['sent', 'delivered'])
             ->exists();
+    }
+
+    /**
+     * Reminder communications for the appointment's current date. Once the sync
+     * detects a move in Google Calendar, deliveries for the old date no longer
+     * count: otherwise the new reminder is skipped as "already sent".
+     */
+    protected function remindersForCurrentDate(Appointment $appointment): Builder
+    {
+        return Communication::where('appointment_id', $appointment->id)
+            ->where('type', 'reminder')
+            ->when($appointment->rescheduled_at, fn (Builder $query, $rescheduledAt) => $query->where('created_at', '>=', $rescheduledAt));
     }
 
     /**

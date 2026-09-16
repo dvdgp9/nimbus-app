@@ -48,6 +48,7 @@ class Appointment extends Model
         'unknown_patient_notified',
         'unknown_patient_escalated_at',
         'unconfirmed_alert_sent_at',
+        'rescheduled_at',
         'professional_review_notified_at',
         'professional_reviewed_at',
         'professional_review_decision',
@@ -71,6 +72,7 @@ class Appointment extends Model
         'professional_reviewed_at' => 'datetime',
         'unknown_patient_escalated_at' => 'datetime',
         'unconfirmed_alert_sent_at' => 'datetime',
+        'rescheduled_at' => 'datetime',
         'raw_payload' => 'array',
         'excluded_by_weekend_preference' => 'boolean',
     ];
@@ -293,7 +295,7 @@ class Appointment extends Model
     /**
      * Remove a leading prefix from the event title in Google Calendar.
      */
-    protected function removeGoogleCalendarTitlePrefix(string $prefix): void
+    public function removeGoogleCalendarTitlePrefix(string $prefix): void
     {
         if (!$this->google_event_id || !$this->calendar_id || !$this->patient) {
             return;
