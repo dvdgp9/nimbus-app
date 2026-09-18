@@ -133,7 +133,7 @@ class GoogleCalendarService
             // reset reminder state so the patient is notified again with the new date.
             // Compared as dates, not strings: a false positive would ask a patient who
             // already confirmed to confirm again.
-            $removeConfirmedPrefix = false;
+            $staleTitlePrefix = null;
             if ($existing && $newStart !== null && ! Carbon::parse($existing->start_at)->eq(Carbon::parse($newStart))) {
                 $data['reminder_sent_at'] = null;
                 $data['rescheduled_at'] = now();
@@ -144,7 +144,12 @@ class GoogleCalendarService
                     $data['nimbus_status'] = 'pending';
                     $data['confirmed_at'] = null;
                     $data['unconfirmed_alert_sent_at'] = null;
-                    $removeConfirmedPrefix = $existing->nimbus_status === 'confirmed';
+                    // "OK - " and "? - " answered the old date; the new one starts clean.
+                    $staleTitlePrefix = match ($existing->nimbus_status) {
+                        'confirmed' => Appointment::TITLE_PREFIX_CONFIRMED,
+                        'rescheduled' => Appointment::TITLE_PREFIX_RESCHEDULE,
+                        default => null,
+                    };
                 }
                 Log::info("Appointment {$existing->id} moved in Google ({$existing->start_at} → {$newStart}). Reminder state reset.", [
                     'previous_status' => $existing->nimbus_status,
@@ -162,9 +167,9 @@ class GoogleCalendarService
                 $data
             );
 
-            // "OK - " marked the old date as confirmed. Confirming the new date adds it back.
-            if ($removeConfirmedPrefix) {
-                Appointment::find($existing->id)?->removeGoogleCalendarTitlePrefix('OK - ');
+            // Confirming or asking to change the new date writes its prefix again.
+            if ($staleTitlePrefix) {
+                Appointment::find($existing->id)?->removeGoogleCalendarTitlePrefix($staleTitlePrefix);
             }
         }
 
@@ -266,8 +271,8 @@ class GoogleCalendarService
         // Trim whitespace
         $title = trim($title);
         
-        // Remove "OK - " prefix if present (from confirmed appointments)
-        $title = preg_replace('/^OK\s*-\s*/i', '', $title);
+        // Remove the status prefix Nimbus writes ("OK - ", "X - ", "? - ")
+        $title = Appointment::stripStatusPrefix($title);
         
         // Try to match a code at the beginning
         // Pattern: alphanumeric code followed by separator (-, :, space) or end of string
@@ -290,8 +295,9 @@ class GoogleCalendarService
             return null;
         }
         
-        $title = trim($title);
-        
+        // "? - AB12" must read like "AB12": the status prefix is not part of the code
+        $title = Appointment::stripStatusPrefix($title);
+
         // Split by spaces and get the last word
         $parts = preg_split('/\s+/', $title);
         
@@ -321,8 +327,8 @@ class GoogleCalendarService
     }
 
     /**
-     * Update event title in Google Calendar (prepend prefix)
-     * Used for adding "OK - " when patient confirms
+     * Set the status prefix of the event title ("OK - ", "X - ", "? - "),
+     * replacing the previous one so they never stack ("OK - ? - ...").
      */
     public function updateEventTitle(string $calendarId, string $eventId, string $prefix, ?string $accountEmail = null, ?int $userId = null): bool
     {
@@ -333,14 +339,14 @@ class GoogleCalendarService
             // Get current event
             $event = $service->events->get($calendarId, $eventId);
             $currentTitle = $event->getSummary() ?? '';
+            $newTitle = Appointment::withStatusPrefix($currentTitle, $prefix);
 
-            // Don't add prefix if already present
-            if (str_starts_with($currentTitle, $prefix)) {
+            // Nothing to do if the title already carries this prefix
+            if ($newTitle === $currentTitle) {
                 return true;
             }
 
-            // Update title with prefix
-            $event->setSummary($prefix . $currentTitle);
+            $event->setSummary($newTitle);
             $service->events->update($calendarId, $eventId, $event);
 
             return true;

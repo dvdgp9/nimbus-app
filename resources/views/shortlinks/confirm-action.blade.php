@@ -41,9 +41,13 @@
                   </a>
                 @endif
                 @if($rescheduleUrl)
-                  <a href="{{ $rescheduleUrl }}" class="shortlink-action-button shortlink-action-reschedule">
-                    Cambiar cita
-                  </a>
+                  {{-- A POST, not a link: only an explicit press marks "? - " in the calendar. --}}
+                  <form method="POST" action="{{ $rescheduleUrl }}">
+                    @csrf
+                    <button type="submit" class="shortlink-action-button shortlink-action-reschedule">
+                      Cambiar cita
+                    </button>
+                  </form>
                 @endif
               </div>
             @endif

@@ -19,6 +19,23 @@ class Appointment extends Model
     public const BLOCKING_EVENT_TITLE = 'bloqueo';
 
     /**
+     * Prefixes Nimbus writes at the start of the Google Calendar title, so the
+     * professional sees each patient's answer in her own calendar.
+     */
+    public const TITLE_PREFIX_CONFIRMED = 'OK - ';
+
+    public const TITLE_PREFIX_CANCELLED = 'X - ';
+
+    public const TITLE_PREFIX_RESCHEDULE = '? - ';
+
+    /**
+     * Any of them, also typed by hand ("ok-") or stacked. Whatever reads the
+     * patient or message code from a title must strip them first, or
+     * "X - AB12" reads as patient "X".
+     */
+    private const STATUS_PREFIX_PATTERN = '/^(?:(?:OK|X|\?)\s*-\s*)+/i';
+
+    /**
      * N1: hours before the session at which an unresolved unknown patient code
      * is escalated with a second, urgent email. Set above the 48h reminder so
      * the professional still has a full day of margin to create the patient.
@@ -228,15 +245,16 @@ class Appointment extends Model
             'confirmed_at' => now(),
         ]);
 
-        // Update event title in Google Calendar with "OK - " prefix
-        $this->updateGoogleCalendarTitle('OK - ');
+        // "OK - " in the Google Calendar title (it replaces a previous "? - ")
+        $this->updateGoogleCalendarTitle(self::TITLE_PREFIX_CONFIRMED);
 
         // Notify professional
         $this->notifyProfessional('confirmed');
     }
 
     /**
-     * Update the event title in Google Calendar
+     * Set the status prefix of the event title in Google Calendar, replacing
+     * the previous one.
      */
     protected function updateGoogleCalendarTitle(string $prefix): void
     {
@@ -274,22 +292,34 @@ class Appointment extends Model
 
     public function cancel(): void
     {
-        $wasConfirmed = $this->nimbus_status === 'confirmed';
-
         $this->update([
             'nimbus_status' => 'cancelled',
             'cancelled_at' => now(),
         ]);
 
-        // BUG-B2: if the appointment had been confirmed previously, its Google
-        // Calendar title was prefixed with "OK - ". Now that it's cancelled,
-        // remove the prefix so the agenda reflects reality.
-        if ($wasConfirmed) {
-            $this->removeGoogleCalendarTitlePrefix('OK - ');
-        }
+        // "X - " replaces "OK - " (BUG-B2) or "? - ", so the calendar shows the
+        // cancellation before the professional acknowledges it and it moves to Sunday.
+        $this->updateGoogleCalendarTitle(self::TITLE_PREFIX_CANCELLED);
 
         // Notify professional
         $this->notifyProfessional('cancelled');
+    }
+
+    /**
+     * The patient pressed "Cambiar cita" on the manage page. "? - " tells the
+     * professional that they answered and want another date. A cancellation
+     * outranks it, so "X - " stays.
+     */
+    public function requestReschedule(): bool
+    {
+        if (in_array($this->nimbus_status, ['cancelled', 'cancelled_acknowledged'], true)) {
+            return false;
+        }
+
+        $this->update(['nimbus_status' => 'rescheduled']);
+        $this->updateGoogleCalendarTitle(self::TITLE_PREFIX_RESCHEDULE);
+
+        return true;
     }
 
     /**
@@ -359,12 +389,25 @@ class Appointment extends Model
         return $this->extractPatientName($this->summary ?? '');
     }
 
+    /**
+     * The title without the status prefix Nimbus wrote ("OK - ", "X - ", "? - ").
+     */
+    public static function stripStatusPrefix(string $title): string
+    {
+        return preg_replace(self::STATUS_PREFIX_PATTERN, '', trim($title));
+    }
+
+    /**
+     * The title with $prefix in place of whatever status prefix it had.
+     */
+    public static function withStatusPrefix(string $title, string $prefix): string
+    {
+        return $prefix . self::stripStatusPrefix($title);
+    }
+
     protected function extractPatientCode(string $title): ?string
     {
-        $title = trim($title);
-
-        // Remove "OK - " prefix if present
-        $title = preg_replace('/^OK\s*-\s*/i', '', $title);
+        $title = self::stripStatusPrefix($title);
 
         if (preg_match('/^([\p{L}\p{M}\p{N}]+)(?:\s*[-:]\s*|\s+|$)/u', $title, $matches)) {
             return Patient::normalizeCode($matches[1]);
@@ -375,10 +418,7 @@ class Appointment extends Model
 
     protected function extractPatientName(string $title): ?string
     {
-        $title = trim($title);
-
-        // Remove "OK - " prefix if present
-        $title = preg_replace('/^OK\s*-\s*/i', '', $title);
+        $title = self::stripStatusPrefix($title);
 
         if (preg_match('/^[\p{L}\p{M}\p{N}]+(?:\s*[-:]\s*|\s+)(.*)$/u', $title, $matches)) {
             return trim($matches[1]) ?: null;
@@ -393,7 +433,8 @@ class Appointment extends Model
             return null;
         }
 
-        $title = trim($title);
+        // "? - AB12" must read like "AB12": the status prefix is not part of the code
+        $title = self::stripStatusPrefix($title);
         $parts = preg_split('/\s+/', $title);
 
         if (count($parts) < 2) {

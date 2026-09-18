@@ -137,6 +137,17 @@ class ShortlinkController extends Controller
         );
 
         if ($action === 'reschedule') {
+            // Only this explicit POST, the "Cambiar cita" button of the manage page,
+            // marks "? - " in the calendar: link scanners also open the GET.
+            $marked = $appointment->requestReschedule();
+            $this->audit->record(
+                $marked ? 'Public appointment action executed' : 'Public appointment action not executed',
+                $request,
+                $shortlink,
+                $appointment,
+                $marked ? 'executed' : 'state_already_resolved'
+            );
+
             return redirect()->away(RescheduleLinkService::forAppointment($appointment));
         }
 
