@@ -69,9 +69,9 @@ class CalendarStatusPrefixTest extends TestCase
             $table->unsignedBigInteger('patient_id')->nullable();
             $table->string('message_code')->nullable();
             $table->string('google_color_id')->nullable();
-            // Same ENUM as production: every status written here must exist there.
+            // Same ENUM as production (checked 2026-09-18): every status written here must exist there.
             $table->enum('nimbus_status', [
-                'pending', 'reminder_sent', 'confirmed', 'cancelled', 'rescheduled', 'completed',
+                'pending', 'reminder_sent', 'confirmed', 'cancelled', 'cancelled_acknowledged', 'rescheduled', 'completed',
             ])->default('pending');
             $table->boolean('excluded_by_weekend_preference')->default(false);
             $table->timestamp('reminder_sent_at')->nullable();

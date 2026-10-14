@@ -10,12 +10,15 @@
   </div>
 
   {{-- Credits Info --}}
-  @if($credits !== null)
+  @if($balance !== null)
     <div class="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 mb-6 flex items-center gap-3">
       <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
       </svg>
-      <span class="text-cyan-300">Créditos SMS disponibles: <strong>{{ number_format($credits, 2) }}</strong></span>
+      <span class="text-cyan-300">
+        SMS disponibles (España): <strong>≈ {{ number_format($balance['sms'], 0, ',', '.') }}</strong>
+        <span class="text-cyan-300/60">· {{ number_format($balance['credits'], 0, ',', '.') }} créditos de Acumbamail (100 por SMS)</span>
+      </span>
     </div>
   @endif
 

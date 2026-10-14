@@ -37,6 +37,13 @@ return Application::configure(basePath: dirname(__DIR__))
                  ->withoutOverlapping()
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/unconfirmed.log'));
+
+        // Email the professional once when few SMS are left in Acumbamail.
+        $schedule->command('nimbus:check-sms-balance')
+                 ->hourly()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/sms-balance.log'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Plain-text fallback renderer, bypasses Phiki when the server's

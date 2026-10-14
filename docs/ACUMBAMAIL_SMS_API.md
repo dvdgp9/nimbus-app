@@ -16,6 +16,15 @@
 - The public documentation does not define a complete mapping for non-zero message status values. Diagnostics must preserve and inspect `messages[n].error` rather than infer a cause from the number alone.
 - At HTTP level, Acumbamail documents `400` as an invalid argument, `401` as failed authentication, `429` as rate limiting, and `500` as a server error.
 
+## Remaining balance (`getCreditsSMS`)
+
+- Official doc: https://acumbamail.com/apidoc/function/getCreditsSMS/ (consulted 2026-10-14; it gives no example or field names).
+- Endpoint: `POST https://acumbamail.com/api/1/getCreditsSMS/` with `auth_token`.
+- Real response checked against production on 2026-10-14: `{"Creditos": 70132, "sms_espana": 701}`.
+- `Creditos` is an internal unit, not a number of SMS. `sms_espana` = `Creditos` / per-SMS cost to Spain, which means **100 credits = 1 single-segment SMS to Spain**.
+- A reminder with N segments costs N SMS (N × 100 credits). Destinations that charge double cost twice that.
+- `getCredits()` currently reads only `Creditos`; any user-facing balance or low-balance threshold should use `sms_espana`.
+
 ## Line break behavior
 
 - Nimbus does not remove line breaks from an SMS template.

@@ -14,17 +14,17 @@ class SmsTestController extends Controller
 {
     public function index()
     {
-        $credits = null;
-        
+        $balance = null;
+
         try {
             $acumbamail = app(AcumbamailService::class);
-            $credits = $acumbamail->getCredits();
+            $balance = $acumbamail->getSmsBalance();
         } catch (Exception $e) {
             // Service not configured
         }
-        
+
         return view('sms.test', [
-            'credits' => $credits,
+            'balance' => $balance,
         ]);
     }
 

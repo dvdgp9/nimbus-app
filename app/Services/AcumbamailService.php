@@ -97,9 +97,15 @@ class AcumbamailService
     }
 
     /**
-     * Get remaining SMS credits
+     * Get the remaining SMS balance, or null when Acumbamail cannot be reached.
+     *
+     * The API answers {"Creditos": 70132, "sms_espana": 701}: credits are an
+     * internal unit and 100 of them pay for one single-segment SMS to Spain.
+     * `sms` is what a human means by "SMS left", so thresholds use it.
+     *
+     * @return array{credits: float, sms: int}|null
      */
-    public function getCredits(): ?float
+    public function getSmsBalance(): ?array
     {
         try {
             $response = $this->postWithRetry('getCreditsSMS/', [
@@ -112,9 +118,12 @@ class AcumbamailService
             }
 
             $data = $response->json();
-            
-            // La API devuelve un JSON como {"Creditos": 248}
-            return isset($data['Creditos']) ? (float) $data['Creditos'] : 0.0;
+            $credits = (float) ($data['Creditos'] ?? 0);
+
+            return [
+                'credits' => $credits,
+                'sms' => isset($data['sms_espana']) ? (int) $data['sms_espana'] : (int) floor($credits / 100),
+            ];
         } catch (Exception $e) {
             Log::error("Failed to fetch Acumbamail credits: " . $e->getMessage());
             return null;

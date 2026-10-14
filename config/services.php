@@ -44,6 +44,8 @@ return [
     'acumbamail' => [
         'auth_token' => env('ACUMBAMAIL_AUTH_TOKEN'),
         'sender' => env('ACUMBAMAIL_SMS_SENDER', 'Nimbus'),
+        // Email the professional when this many SMS to Spain (or fewer) are left.
+        'low_sms_threshold' => (int) env('ACUMBAMAIL_LOW_SMS_THRESHOLD', 50),
     ],
 
     'whatsapp' => [
