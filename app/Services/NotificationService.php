@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\SmsDeliveryUncertainException;
 use App\Mail\TemplatedReminder;
 use App\Mail\UnknownPatientCode;
 use App\Models\Appointment;
@@ -218,8 +219,7 @@ class NotificationService
         Shortlink $confirmLink,
         Shortlink $cancelLink,
         Shortlink $rescheduleLink,
-    ): array
-    {
+    ): array {
         $professional = $patient->user;
 
         return [
@@ -336,6 +336,14 @@ class NotificationService
             return false;
         }
 
+        // A persisted pending row also covers a process crash or a DB failure
+        // after provider acceptance. Reconcile it; never create a second send.
+        $pending = $this->remindersForCurrentDate($appointment)
+            ->where('channel', 'sms')->where('status', 'pending')->oldest('id')->first();
+        if ($pending) {
+            return app(SmsDeliveryReconciler::class)->reconcile($pending);
+        }
+
         $template = $data['templateResolutions']['sms']->template;
         $message = $template->parse($data['templateData']);
 
@@ -353,18 +361,27 @@ class NotificationService
         try {
             $acumbamailService = app(AcumbamailService::class);
             $smsId = $acumbamailService->sendSMS($patient->phone, $message);
+        } catch (SmsDeliveryUncertainException $e) {
+            $communication->update(['error_message' => $e->getMessage()]);
+            Log::warning('SMS delivery unconfirmed; automatic resend blocked', [
+                'communication_id' => $communication->id,
+                'appointment_id' => $appointment->id,
+            ]);
 
-            $communication->markAsSent($smsId);
-
-            Log::info("SMS reminder sent to {$patient->phone} for appointment {$appointment->id}");
-
-            return true;
+            return false;
         } catch (Exception $e) {
             $communication->markAsFailed($e->getMessage());
             Log::error('SMS failed: '.$e->getMessage());
 
             return false;
         }
+
+        // Do not turn an accepted send into a retryable failure if saving its
+        // ID fails. The pending row must survive for report reconciliation.
+        $communication->markAsSent($smsId);
+        Log::info("SMS reminder sent for appointment {$appointment->id}", ['communication_id' => $communication->id]);
+
+        return true;
     }
 
     /**

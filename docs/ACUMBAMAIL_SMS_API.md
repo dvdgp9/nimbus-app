@@ -51,3 +51,16 @@
 - Acumbamail may return the successful status as `0` or `"0"`; Nimbus accepts both.
 - API acceptance does not prove handset delivery. Check **Reports > Individual sends** in Acumbamail for `Delivered`, `Sent`, or `Undelivered`.
 - Nimbus stores the provider ID and logs partial delivery when email succeeds but SMS fails.
+
+## Safe handling of delayed responses (2026-10-27)
+
+- `sendSMS/` performs one HTTP request with a 60-second timeout. It never uses the retry helper: a timeout can happen after Acumbamail accepted and delivered the message.
+- Only a numeric non-zero per-message status with a descriptive `error` is classified as an explicit rejection. Timeouts, HTTP gateway errors, malformed responses and missing message IDs raise `SmsDeliveryUncertainException`.
+- A reminder communication is persisted as `pending` before the HTTP request. Uncertain outcomes stay pending, including a process crash or a failure to save the ID after acceptance. Later reminder ticks cannot create another SMS for that appointment/date while this row exists.
+- `getSMSQuickSubscriberReport/` is a read-only endpoint accepting `auth_token`, `start_date` and `end_date` (`YYYY-MM-DD HH:MM`). Official reference: https://acumbamail.com/apidoc/function/getSMSQuickSubscriberReport/ (consulted 2026-10-27).
+- Its response is a list with `sms_id`, `sender`, `phone`, `sent_at`, `status`, `delivered_at` and `sms_content`. Nimbus matches the normalized phone, exact original message and send time to recover the provider ID. The observed delivered status is `Entregado`.
+- `nimbus:reconcile-sms` runs every 15 minutes, including after a patient confirms or cancels. It only reads reports, updates communications and alerts the professional; it does not send SMS. `--dry-run` lists the counts without contacting Acumbamail or sending email.
+- Report snapshots are shared briefly between pending communications to respect the documented limit of ten report calls/minute. A missing or unavailable report keeps the communication pending; absence is not proof of rejection.
+- After 30 minutes without confirmation, Nimbus emails the professional once to review the individual send report. The notification marker is persisted on the communication so later ticks do not repeat the alert. A late report match can still resolve it.
+- Explicitly rejected sends retain the existing bounded retry behavior. Balance/report lookups may retry because they do not send messages.
+- Existing `pending`, `sent` and `delivered` enum values are reused; no schema migration is required. Deploy the new exception, reconciler, command, email class/template and updated services/schedule together.

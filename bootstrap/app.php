@@ -22,6 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/calendar-sync.log'));
 
+        // Recover uncertain SMS even after patient confirmation/cancellation.
+        $schedule->command('nimbus:reconcile-sms')
+                 ->everyFifteenMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/sms-reconciliation.log'));
+
         // Send appointment reminders every 15 minutes (48h before appointment)
         $schedule->command('nimbus:send-reminders --hours=48')
                  ->everyFifteenMinutes()

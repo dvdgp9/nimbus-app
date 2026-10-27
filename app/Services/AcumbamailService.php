@@ -2,17 +2,21 @@
 
 namespace App\Services;
 
+use App\Exceptions\SmsDeliveryUncertainException;
+use Carbon\CarbonInterface;
 use Exception;
-use InvalidArgumentException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
 class AcumbamailService
 {
     protected string $authToken;
+
     protected string $sender;
+
     protected string $apiUrl = 'https://acumbamail.com/api/1/';
 
     /** Total HTTP attempts (1 initial + retries) for transient Acumbamail failures. */
@@ -24,12 +28,15 @@ class AcumbamailService
     /** HTTP request timeout in seconds. */
     protected int $timeout = 15;
 
+    /** Slow sends must not be repeated just because their response was delayed. */
+    protected int $sendTimeout = 60;
+
     public function __construct()
     {
         $this->authToken = config('services.acumbamail.auth_token');
         $this->sender = config('services.acumbamail.sender', 'Nimbus');
 
-        if (!$this->authToken) {
+        if (! $this->authToken) {
             throw new Exception('Acumbamail auth_token not configured');
         }
     }
@@ -48,38 +55,45 @@ class AcumbamailService
             // with an nginx 404. Sending raw UTF-8 matches Acumbamail's official
             // PHP library and lets emoji through. Accents were always accepted,
             // so they were never the problem.
-            $response = $this->postWithRetry('sendSMS/', [
-                'auth_token' => $this->authToken,
-                'messages' => json_encode([
-                    [
-                        'recipient' => $recipient,
-                        'body' => $message,
-                        'sender' => $this->sender,
-                    ]
-                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            ]);
+            // This is a side effect, unlike balance/report lookups. A timeout
+            // does not prove rejection: Acumbamail may still deliver this SMS.
+            $response = Http::asForm()->connectTimeout(10)->timeout($this->sendTimeout)
+                ->post($this->apiUrl.'sendSMS/', [
+                    'auth_token' => $this->authToken,
+                    'messages' => json_encode([
+                        [
+                            'recipient' => $recipient,
+                            'body' => $message,
+                            'sender' => $this->sender,
+                        ],
+                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                ]);
 
             $data = $response->json();
 
-            if (!$response->successful()) {
-                throw new Exception('Acumbamail API error: ' . $response->body());
-            }
-
-            // Check individual message status
             $messageResult = $data['messages'][0] ?? null;
-            
-            if (!$messageResult || (int) ($messageResult['status'] ?? -1) !== 0) {
-                $error = $messageResult['error'] ?? 'Unknown error';
-                throw new Exception("Acumbamail SMS error: {$error}");
+            if (! is_array($messageResult)) {
+                $messageResult = [];
+            }
+            $status = $messageResult['status'] ?? null;
+
+            // Only an explicit per-message rejection establishes that it is
+            // safe for a later scheduler tick to try again.
+            if ((is_int($status) || (is_string($status) && ctype_digit($status)))
+                && (int) $status !== 0 && ! empty($messageResult['error'])) {
+                throw new Exception('Acumbamail SMS rejected: '.$messageResult['error']);
             }
 
-            if (!isset($messageResult['id'])) {
-                throw new Exception('Acumbamail SMS error: missing message id');
+            if (! $response->successful() || ! in_array($status, [0, '0'], true)
+                || empty($messageResult['id'])) {
+                throw new SmsDeliveryUncertainException(
+                    'Acumbamail did not confirm the send (HTTP '.$response->status().'). Check the SMS report before retrying.'
+                );
             }
 
             $smsId = (string) $messageResult['id'];
 
-            Log::info("SMS sent via Acumbamail", [
+            Log::info('SMS sent via Acumbamail', [
                 'id' => $smsId,
                 'to' => $recipient,
                 'status' => (int) $messageResult['status'],
@@ -87,13 +101,32 @@ class AcumbamailService
             ]);
 
             return $smsId;
+        } catch (ConnectionException $e) {
+            throw new SmsDeliveryUncertainException('Acumbamail connection timed out or was interrupted; delivery is unconfirmed.', 0, $e);
         } catch (Exception $e) {
-            Log::error("Acumbamail SMS error: " . $e->getMessage(), [
+            Log::error('Acumbamail SMS error: '.$e->getMessage(), [
                 'to' => $to,
                 'error' => $e->getMessage(),
             ]);
             throw $e;
         }
+    }
+
+    /** Read-only report used to recover sends whose HTTP response was lost. */
+    public function getSmsReport(CarbonInterface $from, CarbonInterface $until): array
+    {
+        $response = $this->postWithRetry('getSMSQuickSubscriberReport/', [
+            'auth_token' => $this->authToken,
+            'start_date' => $from->format('Y-m-d H:i'),
+            'end_date' => $until->format('Y-m-d H:i'),
+        ]);
+        $data = $response->json();
+
+        if (! $response->successful() || ! is_array($data) || ! array_is_list($data)) {
+            throw new Exception('Acumbamail SMS report unavailable (HTTP '.$response->status().').');
+        }
+
+        return $data;
     }
 
     /**
@@ -112,8 +145,9 @@ class AcumbamailService
                 'auth_token' => $this->authToken,
             ]);
 
-            if (!$response->successful()) {
-                Log::error("Acumbamail API error in getCreditsSMS: " . $response->body());
+            if (! $response->successful()) {
+                Log::error('Acumbamail API error in getCreditsSMS: '.$response->body());
+
                 return null;
             }
 
@@ -125,23 +159,16 @@ class AcumbamailService
                 'sms' => isset($data['sms_espana']) ? (int) $data['sms_espana'] : (int) floor($credits / 100),
             ];
         } catch (Exception $e) {
-            Log::error("Failed to fetch Acumbamail credits: " . $e->getMessage());
+            Log::error('Failed to fetch Acumbamail credits: '.$e->getMessage());
+
             return null;
         }
     }
 
     /**
-     * POST to the Acumbamail API with a bounded timeout and retries for
-     * transient failures.
-     *
-     * Acumbamail's nginx layer intermittently answers a perfectly valid
-     * endpoint with "404 Not Found" (see app log 2026-06-20 and 2026-06-27),
-     * and connections occasionally time out (cURL 28, 2026-01-29). Without a
-     * retry, a single blip silently drops the SMS forever. We therefore retry
-     * on connection errors and on transient HTTP statuses (404, 408, 429, 5xx)
-     * with a small linear backoff. After the attempts are exhausted we return
-     * the last response so the caller's existing !successful() handling still
-     * produces a meaningful error message.
+     * Retry read-only balance/report requests on transient failures. Never
+     * use this for sendSMS: production confirmed duplicate deliveries after
+     * retries of requests whose responses timed out (2026-10-18 onwards).
      */
     protected function postWithRetry(string $path, array $payload): Response
     {
@@ -151,11 +178,12 @@ class AcumbamailService
             try {
                 $response = Http::asForm()
                     ->timeout($this->timeout)
-                    ->post($this->apiUrl . $path, $payload);
+                    ->post($this->apiUrl.$path, $payload);
 
                 if ($attempt < $this->maxAttempts && $this->isTransientStatus($response->status())) {
                     Log::warning("Acumbamail transient HTTP {$response->status()} on {$path}, retrying ({$attempt}/{$this->maxAttempts})");
                     usleep($this->retryBackoffMs * 1000 * $attempt);
+
                     continue;
                 }
 
@@ -164,7 +192,7 @@ class AcumbamailService
                 if ($attempt >= $this->maxAttempts) {
                     throw $e;
                 }
-                Log::warning("Acumbamail connection error on {$path}, retrying ({$attempt}/{$this->maxAttempts}): " . $e->getMessage());
+                Log::warning("Acumbamail connection error on {$path}, retrying ({$attempt}/{$this->maxAttempts}): ".$e->getMessage());
                 usleep($this->retryBackoffMs * 1000 * $attempt);
             }
         }
@@ -190,28 +218,28 @@ class AcumbamailService
         $hasPlus = str_starts_with($phone, '+');
         $digits = preg_replace('/\D+/', '', $phone);
 
-        if (!$digits) {
+        if (! $digits) {
             throw new InvalidArgumentException('El teléfono no contiene ningún número.');
         }
 
         if ($hasPlus) {
-            return '+' . $digits;
+            return '+'.$digits;
         }
 
         if (str_starts_with($digits, '00')) {
-            return '+' . substr($digits, 2);
+            return '+'.substr($digits, 2);
         }
 
         if (strlen($digits) === 9) {
-            return '+34' . $digits;
+            return '+34'.$digits;
         }
 
         if (str_starts_with($digits, '34') && strlen($digits) === 11) {
-            return '+' . $digits;
+            return '+'.$digits;
         }
 
         if (strlen($digits) >= 10 && strlen($digits) <= 15) {
-            return '+' . $digits;
+            return '+'.$digits;
         }
 
         throw new InvalidArgumentException('Usa un teléfono español de 9 dígitos o un número internacional con prefijo.');
